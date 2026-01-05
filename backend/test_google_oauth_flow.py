@@ -7,6 +7,10 @@ import sys
 import os
 sys.path.insert(0, '/app/backend')
 
+# Load environment variables FIRST
+from dotenv import load_dotenv
+load_dotenv('/app/backend/.env')
+
 import asyncio
 from datetime import datetime, timedelta, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
