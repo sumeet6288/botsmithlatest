@@ -1,10 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI } from '../utils/api';
 import { 
   supabase, 
   isSupabaseConfigured, 
-  signInWithEmail, 
-  signUpWithEmail,
   signOut as supabaseSignOut,
   onAuthStateChange 
 } from '../lib/supabaseClient';
@@ -14,24 +11,23 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [useSupabase, setUseSupabase] = useState(isSupabaseConfigured);
 
   useEffect(() => {
-    // Check authentication state on mount
-    if (useSupabase) {
+    // Initialize authentication on mount
+    if (isSupabaseConfigured) {
       initializeSupabaseAuth();
     } else {
       initializeLegacyAuth();
     }
-  }, [useSupabase]);
+  }, []);
 
   const initializeSupabaseAuth = () => {
-    // Set up Supabase auth state listener
+    // Set up Supabase auth state listener for Google OAuth
     const unsubscribe = onAuthStateChange(async (event, session) => {
       console.log('Supabase auth event:', event);
       
       if (session?.user) {
-        // User is signed in with Supabase
+        // User is signed in with Google OAuth
         await syncSupabaseUser(session.access_token);
       } else {
         // User is signed out
@@ -47,7 +43,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const initializeLegacyAuth = () => {
-    // Check if user is already logged in with legacy auth
+    // Check if user is already logged in (admin or legacy users)
     const token = localStorage.getItem('botsmith_token');
     if (token && token !== 'mock-token-for-development') {
       fetchCurrentUser();
@@ -158,102 +154,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  // Legacy login for admin users only (via DirectLogin page)
+  const loginLegacy = async (email, password) => {
     try {
       setLoading(true);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-      if (useSupabase) {
-        // Use Supabase authentication
-        const { session, user } = await signInWithEmail(email, password);
-        
-        if (!session) {
-          throw new Error('Failed to create session');
-        }
-
-        // Sync user with backend
-        await syncSupabaseUser(session.access_token);
-        
-        return { data: { user } };
-      } else {
-        // Use legacy authentication
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-        const response = await fetch(`${backendUrl}/api/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email, password })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Login failed');
-        }
-
-        const data = await response.json();
-        localStorage.setItem('botsmith_token', data.access_token);
-        
-        // Fetch user data
-        await fetchCurrentUser();
-        setLoading(false);
-        return { data };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Login failed');
       }
-    } catch (error) {
+
+      const data = await response.json();
+      localStorage.setItem('botsmith_token', data.access_token);
+      
+      // Fetch user data
+      await fetchCurrentUser();
       setLoading(false);
-      throw error;
-    }
-  };
-
-  const register = async (name, email, password) => {
-    try {
-      setLoading(true);
-
-      if (useSupabase) {
-        // Use Supabase authentication
-        const { user, session } = await signUpWithEmail(email, password, name);
-        
-        if (!user) {
-          throw new Error('Failed to create user');
-        }
-
-        // If email confirmation is required, session will be null
-        if (session) {
-          await syncSupabaseUser(session.access_token);
-        } else {
-          setLoading(false);
-          // Return success but indicate email verification needed
-          return { 
-            data: { user },
-            emailVerificationRequired: true 
-          };
-        }
-        
-        return { data: { user } };
-      } else {
-        // Use legacy authentication
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-        const response = await fetch(`${backendUrl}/api/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ name, email, password })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Registration failed');
-        }
-
-        const data = await response.json();
-        
-        // Store token and fetch user data (auto-login after registration)
-        localStorage.setItem('botsmith_token', data.access_token);
-        await fetchCurrentUser();
-        
-        setLoading(false);
-        return { data };
-      }
+      return { data };
     } catch (error) {
       setLoading(false);
       throw error;
@@ -262,8 +187,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      if (useSupabase) {
-        // Sign out from Supabase
+      if (isSupabaseConfigured) {
+        // Sign out from Supabase (Google OAuth)
         await supabaseSignOut();
       } else {
         // Legacy logout
@@ -296,7 +221,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     // Force refresh user data from API
-    if (useSupabase) {
+    if (isSupabaseConfigured) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         await syncSupabaseUser(session.access_token);
@@ -309,13 +234,12 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
-    login,
-    register,
+    loginLegacy, // For admin login only
     logout,
     updateUser,
     fetchCurrentUser,
     refreshUser,
-    useSupabase, // Expose whether Supabase is being used
+    isSupabaseConfigured, // Expose Supabase configuration status
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
