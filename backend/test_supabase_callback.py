@@ -106,9 +106,9 @@ def test_supabase_callback():
             if analytics_response.status_code == 200:
                 analytics = analytics_response.json()
                 print(f"       ✓ Analytics data:")
-                print(f"         - total_chatbots: {analytics.get('data', {}).get('total_chatbots', 0)}")
-                print(f"         - total_conversations: {analytics.get('data', {}).get('total_conversations', 0)}")
-                print(f"         - total_messages: {analytics.get('data', {}).get('total_messages', 0)}")
+                print(f"         - total_chatbots: {analytics.get('total_chatbots', 0)}")
+                print(f"         - total_conversations: {analytics.get('total_conversations', 0)}")
+                print(f"         - total_messages: {analytics.get('total_messages', 0)}")
             else:
                 print(f"       ❌ ERROR: {analytics_response.text[:200]}")
             
