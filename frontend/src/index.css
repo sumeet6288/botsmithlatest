@@ -118,10 +118,6 @@ body {
   .font-body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
-  
-  #root {
-    zoom: 0.8;
-  }
 }
 
 /* Premium Smooth Scrolling */
