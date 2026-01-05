@@ -56,8 +56,8 @@ const SupabaseCallback = () => {
       // Sync user with backend
       const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
       const response = await axios.post(
-        `${backendUrl}/api/auth/supabase/verify`,
-        { token },
+        `${backendUrl}/api/auth/supabase/callback`,
+        { access_token: token },
         {
           headers: {
             'Content-Type': 'application/json'
@@ -65,14 +65,12 @@ const SupabaseCallback = () => {
         }
       );
 
-      if (response.data.success) {
+      if (response.data.access_token && response.data.user) {
         console.log('✅ User synced with backend:', response.data.user);
 
-        // Store token and user data in localStorage
-        localStorage.setItem('supabase_token', token);
-        localStorage.setItem('supabase_user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', token); // For compatibility with existing auth
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store our app's JWT token and user data
+        localStorage.setItem('botsmith_token', response.data.access_token);
+        localStorage.setItem('botsmith_user', JSON.stringify(response.data.user));
 
         setStatus('Success! Redirecting to dashboard...');
         toast.success('Successfully signed in!');
@@ -82,7 +80,7 @@ const SupabaseCallback = () => {
           navigate('/dashboard');
         }, 1000);
       } else {
-        throw new Error(response.data.message || 'Backend sync failed');
+        throw new Error('Invalid response from backend');
       }
     } catch (err) {
       console.error('❌ Authentication callback error:', err);
