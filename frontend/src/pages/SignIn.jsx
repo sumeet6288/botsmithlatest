@@ -1,37 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { useToast } from '../hooks/use-toast';
-import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, Eye, EyeOff, Sparkles, Zap, ChevronRight } from 'lucide-react';
+import { Sparkles, Zap } from 'lucide-react';
 import BotSmithLogo from '../components/BotSmithLogo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [focusedField, setFocusedField] = useState('');
   const [particles, setParticles] = useState([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  // Load saved email on component mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('botsmith_remember_email');
-    if (savedEmail) {
-      setFormData(prev => ({ ...prev, email: savedEmail }));
-      setRememberMe(true);
-    }
-  }, []);
 
   // Generate floating particles
   useEffect(() => {
@@ -56,49 +32,6 @@ const SignIn = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-
-  // Handle remember me checkbox change
-  const handleRememberMeChange = (e) => {
-    const checked = e.target.checked;
-    setRememberMe(checked);
-    
-    if (!checked) {
-      // Clear saved email when unchecked
-      localStorage.removeItem('botsmith_remember_email');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      await login(formData.email, formData.password);
-      
-      // Save email to localStorage if remember me is checked
-      if (rememberMe) {
-        localStorage.setItem('botsmith_remember_email', formData.email);
-      } else {
-        localStorage.removeItem('botsmith_remember_email');
-      }
-      
-      toast({
-        title: 'Welcome back! 🎉',
-        description: 'Successfully signed in'
-      });
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error.message || error.response?.data?.detail || 'Failed to sign in. Please check your credentials.';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex relative overflow-hidden">
@@ -157,142 +90,26 @@ const SignIn = () => {
               </div>
               
               {/* Heading with stagger animation */}
-              <div className="space-y-1 sm:space-y-2 mb-4 sm:mb-6">
+              <div className="space-y-1 sm:space-y-2 mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-black font-heading bg-gradient-to-r from-purple-700 via-pink-600 to-orange-600 bg-clip-text text-transparent animate-slide-in-left leading-tight">
                   Welcome back
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base font-body animate-slide-in-left stagger-1">Sign in to continue your journey with AI</p>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-                {/* Email Input with enhanced animations */}
-                <div className="group/input animate-fade-in-scale stagger-2">
-                  <Label htmlFor="email" className="text-gray-700 font-semibold mb-1.5 flex items-center gap-1.5 font-heading text-sm">
-                    <Mail className="w-3.5 h-3.5 text-purple-600" />
-                    Email Address
-                  </Label>
-                  <div className={`relative mt-1.5 transition-all duration-500 ${focusedField === 'email' ? 'scale-[1.02] shadow-xl shadow-purple-500/20' : ''}`}>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      onFocus={() => setFocusedField('email')}
-                      onBlur={() => setFocusedField('')}
-                      className="pl-3 pr-3 py-5 font-body text-sm bg-white border-2 border-purple-200 focus:border-purple-500 focus:bg-white rounded-xl transition-all duration-500 focus:shadow-xl focus:shadow-purple-500/20"
-                      required
-                    />
-                    {focusedField === 'email' && (
-                      <>
-                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-xl blur-md animate-neon-glow"></div>
-                        <div className="absolute -top-0.5 left-3 right-3 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full"></div>
-                      </>
-                    )}
-                  </div>
-                </div>
+              {/* Google Auth Button - ONLY authentication method */}
+              <div className="space-y-4 sm:space-y-5 animate-fade-in-scale stagger-2">
+                <GoogleAuthButton />
                 
-                {/* Password Input with enhanced animations */}
-                <div className="group/input animate-fade-in-scale stagger-3">
-                  <Label htmlFor="password" className="text-gray-700 font-semibold mb-1.5 flex items-center gap-1.5 font-heading text-sm">
-                    <Lock className="w-3.5 h-3.5 text-purple-600" />
-                    Password
-                  </Label>
-                  <div className={`relative mt-1.5 transition-all duration-500 ${focusedField === 'password' ? 'scale-[1.02] shadow-xl shadow-purple-500/20' : ''}`}>
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      onFocus={() => setFocusedField('password')}
-                      onBlur={() => setFocusedField('')}
-                      className="pl-3 pr-12 py-5 font-body text-sm bg-white border-2 border-purple-200 focus:border-purple-500 focus:bg-white rounded-xl transition-all duration-500 focus:shadow-xl focus:shadow-purple-500/20 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-600 transition-all duration-300 hover:scale-110"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                    {focusedField === 'password' && (
-                      <>
-                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-xl blur-md animate-neon-glow"></div>
-                        <div className="absolute -top-0.5 left-3 right-3 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full"></div>
-                      </>
-                    )}
-                  </div>
+                {/* Info message */}
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 font-body">
+                    Secure authentication powered by Google
+                  </p>
                 </div>
-                
-                {/* Remember me & Forgot password */}
-                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-4 px-1 animate-fade-in-scale stagger-4 text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer group/check font-body">
-                    <input 
-                      type="checkbox" 
-                      checked={rememberMe}
-                      onChange={handleRememberMeChange}
-                      className="w-3.5 h-3.5 rounded border-2 border-purple-300 text-purple-600 focus:ring-purple-500 focus:ring-2 transition-all cursor-pointer" 
-                    />
-                    <span className="text-gray-600 group-hover/check:text-purple-600 transition-colors whitespace-nowrap">Remember me</span>
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => navigate('/forgot-password')}
-                    className="text-purple-600 hover:text-pink-600 font-semibold transition-colors font-body hover:underline whitespace-nowrap"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                
-                {/* Enhanced Submit Button with ripple effect */}
-                <Button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="w-full relative group/btn overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 text-white py-4 sm:py-5 rounded-xl shadow-2xl shadow-purple-500/40 transform hover:scale-[1.02] hover:shadow-3xl hover:shadow-purple-500/50 transition-all duration-500 btn-ripple animate-bounce-in stagger-5 mt-4 sm:mt-6"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2 text-sm sm:text-base font-bold font-heading">
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Signing in...
-                      </>
-                    ) : (
-                      <>
-                        Sign in
-                        <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
-                  <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300">
-                    <div className="absolute top-0 left-1/4 w-2 h-full bg-white/20 blur-sm transform -skew-x-12"></div>
-                    <div className="absolute top-0 right-1/4 w-2 h-full bg-white/20 blur-sm transform -skew-x-12"></div>
-                  </div>
-                </Button>
-
-                {/* Divider */}
-                <div className="relative my-4 sm:my-5 animate-fade-in-scale stagger-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-3 bg-gradient-to-r from-white/0 via-white/95 to-white/0 text-gray-500 text-xs font-semibold font-body">Or continue with</span>
-                  </div>
-                </div>
-
-                {/* Google Auth Button (Supabase) */}
-                <div className="animate-slide-in-bottom-entrance stagger-6">
-                  <GoogleAuthButton />
-                </div>
-              </form>
+              </div>
               
-              <p className="mt-4 sm:mt-6 text-center text-gray-600 font-body animate-fade-in text-sm">
+              <p className="mt-6 sm:mt-8 text-center text-gray-600 font-body animate-fade-in text-sm">
                 Don't have an account?{' '}
                 <button onClick={() => navigate('/signup')} className="text-purple-600 font-bold font-heading hover:text-pink-600 transition-colors hover:underline inline-flex items-center gap-1">
                   Sign up
