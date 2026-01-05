@@ -122,7 +122,11 @@ def test_supabase_callback():
             if usage_response.status_code == 200:
                 usage = usage_response.json()
                 print(f"       ✓ Usage stats retrieved")
-                print(f"         - plan: {usage.get('data', {}).get('plan', {}).get('name', 'N/A')}")
+                plan_data = usage.get('plan', {})
+                if not plan_data:
+                    # Try different response structure
+                    plan_data = usage
+                print(f"         - plan: {plan_data.get('name', 'N/A')}")
             else:
                 print(f"       ❌ ERROR: {usage_response.text[:200]}")
             
