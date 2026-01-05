@@ -1,0 +1,23 @@
+# Essential Files for Repository
+
+## Keep These Files:
+✅ /app/README.md - Main documentation
+✅ /app/INSTALLATION_GUIDE.md - Detailed installation guide
+✅ /app/REPO_SETUP_GUIDE.md - Repository setup guide
+✅ /app/install.sh - Main installer
+✅ /app/fast_start.sh - Quick start script
+✅ /app/quick_install.sh - Optimized installer
+✅ /app/cleanup_for_repo.sh - Pre-commit cleanup
+
+## Source Code:
+✅ /app/backend/ - All backend code
+✅ /app/frontend/ - All frontend code
+
+## Config Files:
+✅ /app/backend/requirements.txt
+✅ /app/frontend/package.json
+✅ /app/frontend/yarn.lock
+✅ /app/.gitignore
+
+## Delete Before Pushing (Optional):
+❌ /app/test_result.md - Testing data (46KB)

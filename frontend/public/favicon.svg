@@ -1,0 +1,49 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d946ef;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect width="64" height="64" rx="16" fill="url(#bg-gradient)"/>
+  
+  <!-- Highlight overlay -->
+  <rect width="64" height="64" rx="16" fill="url(#highlight)"/>
+  
+  <!-- Robot icon -->
+  <g transform="translate(16, 10)">
+    <!-- Head -->
+    <rect x="4" y="8" width="24" height="28" rx="2" fill="white"/>
+    
+    <!-- Eyes -->
+    <circle cx="14" cy="18" r="3" fill="#7c3aed">
+      <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="24" cy="18" r="3" fill="#7c3aed">
+      <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Smile -->
+    <path d="M 14 26 Q 19 30 24 26" stroke="#ec4899" stroke-width="2" fill="none" stroke-linecap="round"/>
+    
+    <!-- Antenna -->
+    <line x1="16" y1="8" x2="16" y2="2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="16" cy="2" r="2" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Sparkle effect -->
+  <circle cx="52" cy="12" r="2" fill="#fbbf24">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="12" cy="52" r="1.5" fill="#22d3ee">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>
