@@ -75,7 +75,7 @@ async def process_telegram_message(
                 f"⚠️ Chatbot Inactive\n\n"
                 f"This chatbot is currently inactive and cannot process messages.\n"
                 f"Please contact the chatbot owner to activate it.\n\n"
-                f"Visit: {os.environ.get('FRONTEND_URL', 'https://jwt-flow-repair.preview.emergentagent.com')}"
+                f"Visit: {os.environ.get('FRONTEND_URL', 'https://login-whitespace.preview.emergentagent.com')}"
             )
             await telegram_service.send_message(
                 chat_id=chat_id,
@@ -96,7 +96,7 @@ async def process_telegram_message(
                     f"⚠️ Message limit reached!\n\n"
                     f"You've used {limit_check['current']}/{limit_check['max']} messages this month.\n"
                     f"Please upgrade your plan to continue using this chatbot.\n\n"
-                    f"Visit your dashboard to upgrade: {os.environ.get('FRONTEND_URL', 'https://jwt-flow-repair.preview.emergentagent.com')}"
+                    f"Visit your dashboard to upgrade: {os.environ.get('FRONTEND_URL', 'https://login-whitespace.preview.emergentagent.com')}"
                 )
                 await telegram_service.send_message(
                     chat_id=chat_id,
