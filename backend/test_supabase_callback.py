@@ -86,7 +86,13 @@ def test_supabase_callback():
             print(f"       Status: {chatbots_response.status_code}")
             if chatbots_response.status_code == 200:
                 chatbots = chatbots_response.json()
-                print(f"       ✓ Found {len(chatbots.get('data', []))} chatbots")
+                # Response might be a list or dict with 'data' key
+                if isinstance(chatbots, list):
+                    print(f"       ✓ Found {len(chatbots)} chatbots")
+                elif isinstance(chatbots, dict):
+                    print(f"       ✓ Found {len(chatbots.get('data', []))} chatbots")
+                else:
+                    print(f"       ✓ Chatbots response: {type(chatbots)}")
             else:
                 print(f"       ❌ ERROR: {chatbots_response.text[:200]}")
             
