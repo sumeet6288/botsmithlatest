@@ -78,7 +78,7 @@ class RazorpayService:
         
         try:
             # Get backend URL for callback
-            backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://single-auth-method.preview.emergentagent.com')
+            backend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://google-auth-flow-6.preview.emergentagent.com')
             
             data = {
                 "plan_id": plan_id,

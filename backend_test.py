@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 class AdminPlanChangeTestSuite:
     def __init__(self):
-        self.base_url = "https://single-auth-method.preview.emergentagent.com/api"
+        self.base_url = "https://google-auth-flow-6.preview.emergentagent.com/api"
         self.admin_token = None
         self.test_users = []
         self.session = None
