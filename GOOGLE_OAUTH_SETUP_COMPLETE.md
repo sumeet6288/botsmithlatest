@@ -197,11 +197,11 @@ JWT token issued → Redirect to /dashboard
    ```
    Supabase Dashboard → Authentication → URL Configuration
    
-   Site URL: https://auth-screen-fix-1.preview.emergentagent.com
+   Site URL: https://jwt-flow-repair.preview.emergentagent.com
    
    Redirect URLs (add these):
-   - https://auth-screen-fix-1.preview.emergentagent.com/auth/callback
-   - https://auth-screen-fix-1.preview.emergentagent.com/
+   - https://jwt-flow-repair.preview.emergentagent.com/auth/callback
+   - https://jwt-flow-repair.preview.emergentagent.com/
    ```
 
 ---
@@ -319,7 +319,7 @@ DB_NAME=chatbase_db
 
 **Frontend:**
 ```bash
-REACT_APP_BACKEND_URL=https://auth-screen-fix-1.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://jwt-flow-repair.preview.emergentagent.com
 REACT_APP_SUPABASE_URL=https://lvtotvdzlsulgycgupcy.supabase.co
 REACT_APP_SUPABASE_ANON_KEY=<your-anon-key>
 ```
