@@ -130,188 +130,26 @@ const SignUp = () => {
               </div>
               
               {/* Heading with stagger animation */}
-              <div className="space-y-1 sm:space-y-2 mb-4 sm:mb-6">
+              <div className="space-y-1 sm:space-y-2 mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-black font-heading bg-gradient-to-r from-purple-700 via-pink-600 to-orange-600 bg-clip-text text-transparent animate-slide-in-right leading-tight">
                   Create your account
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base font-body animate-slide-in-right stagger-1">Start building your AI agents today</p>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-                {/* Name Input */}
-                <div className="group/input animate-fade-in-scale stagger-2">
-                  <Label htmlFor="name" className="text-gray-700 font-semibold mb-1.5 flex items-center gap-1.5 font-heading text-sm">
-                    <User className="w-3.5 h-3.5 text-purple-600" />
-                    Full Name
-                  </Label>
-                  <div className={`relative mt-1.5 transition-all duration-500 ${focusedField === 'name' ? 'scale-[1.02] shadow-xl shadow-purple-500/20' : ''}`}>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      onFocus={() => setFocusedField('name')}
-                      onBlur={() => setFocusedField('')}
-                      className="pl-3 pr-3 py-5 font-body text-sm bg-white border-2 border-purple-200 focus:border-purple-500 focus:bg-white rounded-xl transition-all duration-500 focus:shadow-xl focus:shadow-purple-500/20"
-                      required
-                    />
-                    {focusedField === 'name' && (
-                      <>
-                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-xl blur-md animate-neon-glow"></div>
-                        <div className="absolute -top-0.5 left-3 right-3 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full"></div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Email Input */}
-                <div className="group/input animate-fade-in-scale stagger-3">
-                  <Label htmlFor="email" className="text-gray-700 font-semibold mb-1.5 flex items-center gap-1.5 font-heading text-sm">
-                    <Mail className="w-3.5 h-3.5 text-purple-600" />
-                    Email Address
-                  </Label>
-                  <div className={`relative mt-1.5 transition-all duration-500 ${focusedField === 'email' ? 'scale-[1.02] shadow-xl shadow-purple-500/20' : ''}`}>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      onFocus={() => setFocusedField('email')}
-                      onBlur={() => setFocusedField('')}
-                      className="pl-3 pr-3 py-5 font-body text-sm bg-white border-2 border-purple-200 focus:border-purple-500 focus:bg-white rounded-xl transition-all duration-500 focus:shadow-xl focus:shadow-purple-500/20"
-                      required
-                    />
-                    {focusedField === 'email' && (
-                      <>
-                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-xl blur-md animate-neon-glow"></div>
-                        <div className="absolute -top-0.5 left-3 right-3 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full"></div>
-                      </>
-                    )}
-                  </div>
-                </div>
+              {/* Google Auth Button - ONLY authentication method */}
+              <div className="space-y-4 sm:space-y-5 animate-fade-in-scale stagger-2">
+                <GoogleAuthButton />
                 
-                {/* Password Input with Strength Indicator */}
-                <div className="group/input animate-fade-in-scale stagger-4">
-                  <Label htmlFor="password" className="text-gray-700 font-semibold mb-1.5 flex items-center gap-1.5 font-heading text-sm">
-                    <Lock className="w-3.5 h-3.5 text-purple-600" />
-                    Password
-                  </Label>
-                  <div className={`relative mt-1.5 transition-all duration-500 ${focusedField === 'password' ? 'scale-[1.02] shadow-xl shadow-purple-500/20' : ''}`}>
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      onFocus={() => setFocusedField('password')}
-                      onBlur={() => setFocusedField('')}
-                      className="pl-3 pr-12 py-5 font-body text-sm bg-white border-2 border-purple-200 focus:border-purple-500 focus:bg-white rounded-xl transition-all duration-500 focus:shadow-xl focus:shadow-xl focus:shadow-purple-500/20 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-contacts-auto-fill-button]:hidden"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-600 transition-all duration-300 hover:scale-110"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                    {focusedField === 'password' && (
-                      <>
-                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-xl blur-md animate-neon-glow"></div>
-                        <div className="absolute -top-0.5 left-3 right-3 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full"></div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Password Strength Indicator */}
-                  {formData.password && (
-                    <div className="mt-3 space-y-2 animate-fade-in">
-                      <div className="flex gap-1">
-                        {[...Array(4)].map((_, i) => (
-                          <div
-                            key={i}
-                            className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                              i < passwordStrength.score ? getStrengthColor() + ' animate-scale-in-entrance' : 'bg-gray-200'
-                            }`}
-                            style={{ animationDelay: `${i * 0.1}s` }}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`font-bold font-heading ${
-                          passwordStrength.score <= 1 ? 'text-red-500' :
-                          passwordStrength.score === 2 ? 'text-orange-500' :
-                          passwordStrength.score === 3 ? 'text-yellow-500' :
-                          'text-green-500'
-                        }`}>
-                          {getStrengthText()}
-                        </span>
-                        <div className="flex gap-2">
-                          <span className={`flex items-center gap-0.5 font-body ${passwordStrength.checks.length ? 'text-green-600' : 'text-gray-400'}`}>
-                            {passwordStrength.checks.length ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                            8+ chars
-                          </span>
-                          <span className={`flex items-center gap-0.5 font-body ${passwordStrength.checks.number ? 'text-green-600' : 'text-gray-400'}`}>
-                            {passwordStrength.checks.number ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                            Number
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                {/* Info message */}
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 font-body">
+                    By continuing, you agree to BotSmith's Terms of Service and Privacy Policy
+                  </p>
                 </div>
-                
-                {/* Enhanced Submit Button */}
-                <Button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="w-full relative group/btn overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 text-white py-4 sm:py-5 rounded-xl shadow-2xl shadow-purple-500/40 transform hover:scale-[1.02] hover:shadow-3xl hover:shadow-purple-500/50 transition-all duration-500 btn-ripple animate-bounce-in stagger-5 mt-4 sm:mt-6"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2 text-sm sm:text-base font-bold font-heading">
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Creating account...
-                      </>
-                    ) : (
-                      <>
-                        Create account
-                        <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
-                  <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300">
-                    <div className="absolute top-0 left-1/4 w-2 h-full bg-white/20 blur-sm transform -skew-x-12"></div>
-                    <div className="absolute top-0 right-1/4 w-2 h-full bg-white/20 blur-sm transform -skew-x-12"></div>
-                  </div>
-                </Button>
-
-                {/* Divider */}
-                <div className="relative my-4 sm:my-5 animate-fade-in-scale stagger-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-3 bg-gradient-to-r from-white/0 via-white/95 to-white/0 text-gray-500 text-xs font-semibold font-body">Or continue with</span>
-                  </div>
-                </div>
-
-                {/* Google Auth Button (Supabase) */}
-                <div className="animate-slide-in-bottom-entrance stagger-6">
-                  <GoogleAuthButton />
-                </div>
-              </form>
+              </div>
               
-              <p className="mt-4 sm:mt-6 text-center text-gray-600 font-body animate-fade-in text-sm">
+              <p className="mt-6 sm:mt-8 text-center text-gray-600 font-body animate-fade-in text-sm">
                 Already have an account?{' '}
                 <button onClick={() => navigate('/signin')} className="text-purple-600 font-bold font-heading hover:text-pink-600 transition-colors hover:underline inline-flex items-center gap-1">
                   Sign in
