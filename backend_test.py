@@ -1,355 +1,509 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for Admin Plan Change Subscription Duration Fix
-================================================================
+BotSmith AI - Google OAuth via Supabase Authentication Testing
+=============================================================
 
-This test suite verifies the critical bug fix where admin changing user plans
-via Ultimate Edit modal resulted in incorrect subscription durations.
+This script tests the Google OAuth authentication via Supabase for BotSmith AI application.
 
-Test Focus:
-- Admin plan changes via PUT /api/admin/users/{user_id}/ultimate-update
-- Subscription duration calculation (FREE: 6 days, Paid: 30 days)
-- Database verification of subscription data after plan changes
-- Edge cases and multiple plan changes
+Test Scope:
+1. Supabase Configuration Verification
+2. Backend Health Check
+3. Admin Authentication (Legacy - Should Still Work)
+4. Service Status
 
-Expected Behavior:
-- When admin changes plan, subscription should ALWAYS start fresh
-- FREE plan: expires_at = NOW + 6 days
-- Paid plans: expires_at = NOW + 30 days
-- No carry-forward of remaining time from previous plan
+Context:
+- Google OAuth is NOW configured with Supabase
+- Backend environment variables: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET
+- Frontend environment variables: REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
+- Regular users (/signup, /signin) will use Google OAuth ONLY
+- Admin users will continue using email/password authentication
+- Application URL: https://google-auth-flow-6.preview.emergentagent.com
 """
 
 import asyncio
 import aiohttp
 import json
-import uuid
-from datetime import datetime, timezone, timedelta
+import sys
+import os
+from datetime import datetime
 from typing import Dict, Any, Optional
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Configuration
+BASE_URL = "https://google-auth-flow-6.preview.emergentagent.com/api"
+ADMIN_EMAIL = "admin@botsmith.com"
+ADMIN_PASSWORD = "admin123"
 
-class AdminPlanChangeTestSuite:
+class Colors:
+    """ANSI color codes for terminal output"""
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+class TestResult:
+    """Test result container"""
+    def __init__(self, name: str, success: bool, message: str, details: Optional[Dict] = None):
+        self.name = name
+        self.success = success
+        self.message = message
+        self.details = details or {}
+        self.timestamp = datetime.now().isoformat()
+
+class SupabaseAuthTester:
+    """Comprehensive Supabase Authentication Tester"""
+    
     def __init__(self):
-        self.base_url = "https://google-auth-flow-6.preview.emergentagent.com/api"
-        self.admin_token = None
-        self.test_users = []
         self.session = None
-        self.test_results = []
+        self.results = []
+        self.admin_token = None
         
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+        """Async context manager entry"""
+        self.session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=30),
+            headers={'Content-Type': 'application/json'}
+        )
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit"""
         if self.session:
             await self.session.close()
     
-    def log_test_result(self, test_name: str, success: bool, details: str = ""):
-        """Log test result for summary"""
-        result = {
-            "test": test_name,
-            "success": success,
-            "details": details,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+    def log_test(self, result: TestResult):
+        """Log test result"""
+        self.results.append(result)
+        status_color = Colors.GREEN if result.success else Colors.RED
+        status_text = "✅ PASS" if result.success else "❌ FAIL"
+        
+        print(f"{status_color}{status_text}{Colors.END} {Colors.BOLD}{result.name}{Colors.END}")
+        print(f"   {result.message}")
+        
+        if result.details:
+            for key, value in result.details.items():
+                print(f"   {Colors.CYAN}{key}:{Colors.END} {value}")
+        print()
+    
+    async def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, 
+                          headers: Optional[Dict] = None) -> tuple[bool, Dict]:
+        """Make HTTP request with error handling"""
+        url = f"{BASE_URL}{endpoint}"
+        request_headers = headers or {}
+        
+        try:
+            async with self.session.request(method, url, json=data, headers=request_headers) as response:
+                try:
+                    response_data = await response.json()
+                except:
+                    response_data = {"text": await response.text()}
+                
+                return response.status < 400, {
+                    "status_code": response.status,
+                    "data": response_data,
+                    "headers": dict(response.headers)
+                }
+        except Exception as e:
+            return False, {
+                "error": str(e),
+                "status_code": 0
+            }
+    
+    async def test_supabase_status(self):
+        """Test 1: Supabase Configuration Verification"""
+        print(f"{Colors.BLUE}🔍 Testing Supabase Configuration Status...{Colors.END}")
+        
+        success, response = await self.make_request("GET", "/auth/supabase/status")
+        
+        if not success:
+            self.log_test(TestResult(
+                "Supabase Status Endpoint",
+                False,
+                f"Failed to reach endpoint: {response.get('error', 'Unknown error')}",
+                {"status_code": response.get('status_code', 0)}
+            ))
+            return
+        
+        data = response.get('data', {})
+        configured = data.get('configured', False)
+        message = data.get('message', '')
+        
+        expected_message = "Supabase authentication is configured and ready"
+        
+        if configured and expected_message in message:
+            self.log_test(TestResult(
+                "Supabase Status Endpoint",
+                True,
+                "Supabase is properly configured and ready",
+                {
+                    "configured": configured,
+                    "message": message,
+                    "status_code": response['status_code']
+                }
+            ))
+        else:
+            self.log_test(TestResult(
+                "Supabase Status Endpoint",
+                False,
+                f"Supabase configuration issue: configured={configured}",
+                {
+                    "configured": configured,
+                    "message": message,
+                    "expected_message": expected_message,
+                    "status_code": response['status_code']
+                }
+            ))
+    
+    async def test_backend_health(self):
+        """Test 2: Backend Health Check"""
+        print(f"{Colors.BLUE}🏥 Testing Backend Health Check...{Colors.END}")
+        
+        success, response = await self.make_request("GET", "/health")
+        
+        if not success:
+            self.log_test(TestResult(
+                "Backend Health Check",
+                False,
+                f"Health check failed: {response.get('error', 'Unknown error')}",
+                {"status_code": response.get('status_code', 0)}
+            ))
+            return
+        
+        data = response.get('data', {})
+        status = data.get('status')
+        database = data.get('database')
+        connection_pool = data.get('connection_pool', {})
+        
+        health_ok = (status == "running" and database == "healthy")
+        
+        if health_ok:
+            self.log_test(TestResult(
+                "Backend Health Check",
+                True,
+                "Backend is healthy and database is accessible",
+                {
+                    "status": status,
+                    "database": database,
+                    "connection_pool_status": connection_pool.get('status', 'unknown'),
+                    "active_connections": connection_pool.get('active_connections', 'unknown'),
+                    "status_code": response['status_code']
+                }
+            ))
+        else:
+            self.log_test(TestResult(
+                "Backend Health Check",
+                False,
+                f"Backend health issues: status={status}, database={database}",
+                {
+                    "status": status,
+                    "database": database,
+                    "connection_pool": connection_pool,
+                    "status_code": response['status_code']
+                }
+            ))
+    
+    async def test_admin_authentication(self):
+        """Test 3: Admin Authentication (Legacy - Should Still Work)"""
+        print(f"{Colors.BLUE}🔐 Testing Admin Authentication...{Colors.END}")
+        
+        # Test admin login
+        login_data = {
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
         }
-        self.test_results.append(result)
-        status = "✅ PASS" if success else "❌ FAIL"
-        logger.info(f"{status}: {test_name} - {details}")
-    
-    async def admin_login(self) -> bool:
-        """Login as admin to get authentication token"""
-        try:
-            login_data = {
-                "email": "admin@botsmith.com",
-                "password": "admin123"
-            }
-            
-            async with self.session.post(f"{self.base_url}/auth/login", json=login_data) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    self.admin_token = data.get("access_token")
-                    self.log_test_result("Admin Login", True, "Successfully authenticated as admin")
-                    return True
-                else:
-                    error_text = await response.text()
-                    self.log_test_result("Admin Login", False, f"Status {response.status}: {error_text}")
-                    return False
-        except Exception as e:
-            self.log_test_result("Admin Login", False, f"Exception: {str(e)}")
-            return False
-    
-    async def create_test_user(self, email: str, name: str, initial_plan: str = "free") -> Optional[str]:
-        """Create a test user with specified initial plan"""
-        try:
-            # Create user
-            user_data = {
-                "name": name,
-                "email": email,
-                "password": "testpass123"
-            }
-            
-            async with self.session.post(f"{self.base_url}/auth/register", json=user_data) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    user_id = data.get("user", {}).get("id")
-                    
-                    if user_id:
-                        # Set initial plan if not free
-                        if initial_plan != "free":
-                            await self.change_user_plan_admin(user_id, initial_plan)
-                        
-                        self.test_users.append({"id": user_id, "email": email, "name": name})
-                        self.log_test_result(f"Create Test User ({email})", True, f"User ID: {user_id}, Initial plan: {initial_plan}")
-                        return user_id
-                    else:
-                        self.log_test_result(f"Create Test User ({email})", False, "No user ID in response")
-                        return None
-                else:
-                    error_text = await response.text()
-                    self.log_test_result(f"Create Test User ({email})", False, f"Status {response.status}: {error_text}")
-                    return None
-        except Exception as e:
-            self.log_test_result(f"Create Test User ({email})", False, f"Exception: {str(e)}")
-            return None
-    
-    async def change_user_plan_admin(self, user_id: str, new_plan_id: str) -> bool:
-        """Change user plan via admin ultimate-update endpoint"""
-        try:
-            headers = {"Authorization": f"Bearer {self.admin_token}"}
-            update_data = {"plan_id": new_plan_id}
-            
-            async with self.session.put(
-                f"{self.base_url}/admin/users/{user_id}/ultimate-update",
-                json=update_data,
-                headers=headers
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    success = data.get("success", False)
-                    if success:
-                        self.log_test_result(f"Admin Plan Change ({user_id} → {new_plan_id})", True, "Plan changed successfully")
-                        return True
-                    else:
-                        self.log_test_result(f"Admin Plan Change ({user_id} → {new_plan_id})", False, f"API returned success=false: {data}")
-                        return False
-                else:
-                    error_text = await response.text()
-                    self.log_test_result(f"Admin Plan Change ({user_id} → {new_plan_id})", False, f"Status {response.status}: {error_text}")
-                    return False
-        except Exception as e:
-            self.log_test_result(f"Admin Plan Change ({user_id} → {new_plan_id})", False, f"Exception: {str(e)}")
-            return False
-    
-    async def verify_subscription_duration(self, user_id: str, expected_plan: str, expected_duration_days: int) -> bool:
-        """Verify subscription has correct plan and duration"""
-        try:
-            headers = {"Authorization": f"Bearer {self.admin_token}"}
-            
-            # Get user subscription data via admin endpoint
-            async with self.session.get(f"{self.base_url}/admin/users/{user_id}", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    user_data = data.get("user", {})
-                    
-                    # Check plan_id
-                    actual_plan = user_data.get("plan_id")
-                    if actual_plan != expected_plan:
-                        self.log_test_result(f"Verify Subscription ({user_id})", False, f"Plan mismatch: expected {expected_plan}, got {actual_plan}")
-                        return False
-                    
-                    # Get subscription details
-                    async with self.session.get(f"{self.base_url}/admin/users/{user_id}/subscription", headers=headers) as sub_response:
-                        if sub_response.status == 200:
-                            sub_data = await sub_response.json()
-                            subscription = sub_data.get("subscription", {})
-                            
-                            # Verify subscription fields
-                            sub_plan_id = subscription.get("plan_id")
-                            expires_at_str = subscription.get("expires_at")
-                            started_at_str = subscription.get("started_at")
-                            status = subscription.get("status")
-                            
-                            if sub_plan_id != expected_plan:
-                                self.log_test_result(f"Verify Subscription ({user_id})", False, f"Subscription plan mismatch: expected {expected_plan}, got {sub_plan_id}")
-                                return False
-                            
-                            if status != "active":
-                                self.log_test_result(f"Verify Subscription ({user_id})", False, f"Subscription status not active: {status}")
-                                return False
-                            
-                            if not expires_at_str or not started_at_str:
-                                self.log_test_result(f"Verify Subscription ({user_id})", False, f"Missing dates: expires_at={expires_at_str}, started_at={started_at_str}")
-                                return False
-                            
-                            # Parse dates and verify duration
-                            try:
-                                expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
-                                started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
-                                
-                                actual_duration = (expires_at - started_at).days
-                                
-                                # Allow 1 day tolerance for timing differences
-                                if abs(actual_duration - expected_duration_days) <= 1:
-                                    self.log_test_result(f"Verify Subscription ({user_id})", True, 
-                                        f"Plan: {sub_plan_id}, Duration: {actual_duration} days (expected: {expected_duration_days}), Status: {status}")
-                                    return True
-                                else:
-                                    self.log_test_result(f"Verify Subscription ({user_id})", False, 
-                                        f"Duration mismatch: expected {expected_duration_days} days, got {actual_duration} days")
-                                    return False
-                            except Exception as date_error:
-                                self.log_test_result(f"Verify Subscription ({user_id})", False, f"Date parsing error: {str(date_error)}")
-                                return False
-                        else:
-                            error_text = await sub_response.text()
-                            self.log_test_result(f"Verify Subscription ({user_id})", False, f"Subscription fetch failed: {error_text}")
-                            return False
-                else:
-                    error_text = await response.text()
-                    self.log_test_result(f"Verify Subscription ({user_id})", False, f"User fetch failed: {error_text}")
-                    return False
-        except Exception as e:
-            self.log_test_result(f"Verify Subscription ({user_id})", False, f"Exception: {str(e)}")
-            return False
-    
-    async def test_plan_change_scenario(self, user_id: str, from_plan: str, to_plan: str, expected_duration: int) -> bool:
-        """Test a specific plan change scenario"""
-        test_name = f"Plan Change: {from_plan} → {to_plan}"
         
-        # Change plan
-        change_success = await self.change_user_plan_admin(user_id, to_plan)
-        if not change_success:
-            return False
+        success, response = await self.make_request("POST", "/auth/login", login_data)
         
-        # Wait a moment for database update
-        await asyncio.sleep(1)
-        
-        # Verify subscription
-        verify_success = await self.verify_subscription_duration(user_id, to_plan, expected_duration)
-        return verify_success
-    
-    async def test_multiple_plan_changes(self, user_id: str) -> bool:
-        """Test multiple plan changes in succession"""
-        test_name = "Multiple Plan Changes"
-        
-        # Test sequence: free → starter → professional → free → starter
-        changes = [
-            ("free", "starter", 30),
-            ("starter", "professional", 30),
-            ("professional", "free", 6),
-            ("free", "starter", 30)
-        ]
-        
-        for i, (from_plan, to_plan, expected_duration) in enumerate(changes):
-            logger.info(f"Testing change {i+1}/4: {from_plan} → {to_plan}")
-            
-            success = await self.test_plan_change_scenario(user_id, from_plan, to_plan, expected_duration)
-            if not success:
-                self.log_test_result(test_name, False, f"Failed at step {i+1}: {from_plan} → {to_plan}")
-                return False
-            
-            # Small delay between changes
-            await asyncio.sleep(0.5)
-        
-        self.log_test_result(test_name, True, "All 4 plan changes completed successfully")
-        return True
-    
-    async def run_comprehensive_tests(self):
-        """Run all admin plan change tests"""
-        logger.info("🚀 Starting Admin Plan Change Subscription Duration Tests")
-        logger.info("=" * 80)
-        
-        # Step 1: Admin login
-        if not await self.admin_login():
-            logger.error("❌ Cannot proceed without admin authentication")
+        if not success:
+            self.log_test(TestResult(
+                "Admin Login",
+                False,
+                f"Admin login failed: {response.get('error', 'Unknown error')}",
+                {
+                    "email": ADMIN_EMAIL,
+                    "status_code": response.get('status_code', 0),
+                    "response": response.get('data', {})
+                }
+            ))
             return
         
-        # Step 2: Create test users
-        logger.info("\n📝 Creating test users...")
-        user1_id = await self.create_test_user("user1@test.com", "Test User 1", "free")
-        user2_id = await self.create_test_user("user2@test.com", "Test User 2", "starter")
-        user3_id = await self.create_test_user("user3@test.com", "Test User 3", "professional")
+        data = response.get('data', {})
+        access_token = data.get('access_token')
+        token_type = data.get('token_type', 'bearer')
         
-        if not all([user1_id, user2_id, user3_id]):
-            logger.error("❌ Failed to create required test users")
+        if access_token:
+            self.admin_token = access_token
+            self.log_test(TestResult(
+                "Admin Login",
+                True,
+                "Admin authentication successful, JWT token issued",
+                {
+                    "email": ADMIN_EMAIL,
+                    "token_type": token_type,
+                    "token_length": len(access_token),
+                    "status_code": response['status_code']
+                }
+            ))
+            
+            # Test getting admin user info
+            await self.test_admin_user_info()
+        else:
+            self.log_test(TestResult(
+                "Admin Login",
+                False,
+                "Admin login succeeded but no access token received",
+                {
+                    "email": ADMIN_EMAIL,
+                    "response_data": data,
+                    "status_code": response['status_code']
+                }
+            ))
+    
+    async def test_admin_user_info(self):
+        """Test 3b: Get Admin User Information"""
+        if not self.admin_token:
+            self.log_test(TestResult(
+                "Admin User Info",
+                False,
+                "Cannot test admin user info - no admin token available",
+                {}
+            ))
             return
         
-        # Step 3: Test primary scenarios
-        logger.info("\n🧪 Testing primary plan change scenarios...")
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        success, response = await self.make_request("GET", "/auth/me", headers=headers)
         
-        # Test FREE → Starter (should get exactly 30 days)
-        await self.test_plan_change_scenario(user1_id, "free", "starter", 30)
+        if not success:
+            self.log_test(TestResult(
+                "Admin User Info",
+                False,
+                f"Failed to get admin user info: {response.get('error', 'Unknown error')}",
+                {"status_code": response.get('status_code', 0)}
+            ))
+            return
         
-        # Test FREE → Professional (should get exactly 30 days)
-        await self.test_plan_change_scenario(user1_id, "starter", "professional", 30)
+        data = response.get('data', {})
+        user_email = data.get('email')
+        user_role = data.get('role')
+        user_name = data.get('name')
         
-        # Test Starter → Professional (should get fresh 30 days)
-        await self.test_plan_change_scenario(user2_id, "starter", "professional", 30)
+        if user_email == ADMIN_EMAIL and user_role == "admin":
+            self.log_test(TestResult(
+                "Admin User Info",
+                True,
+                "Admin user information retrieved successfully with correct role",
+                {
+                    "email": user_email,
+                    "role": user_role,
+                    "name": user_name,
+                    "plan_id": data.get('plan_id', 'unknown'),
+                    "status_code": response['status_code']
+                }
+            ))
+        else:
+            self.log_test(TestResult(
+                "Admin User Info",
+                False,
+                f"Admin user info incorrect: email={user_email}, role={user_role}",
+                {
+                    "expected_email": ADMIN_EMAIL,
+                    "actual_email": user_email,
+                    "expected_role": "admin",
+                    "actual_role": user_role,
+                    "status_code": response['status_code']
+                }
+            ))
+    
+    async def test_service_status(self):
+        """Test 4: Service Status Verification"""
+        print(f"{Colors.BLUE}⚙️ Testing Service Status...{Colors.END}")
         
-        # Test Professional → FREE (should get exactly 6 days)
-        await self.test_plan_change_scenario(user3_id, "professional", "free", 6)
+        # Test if backend is responding
+        success, response = await self.make_request("GET", "/")
         
-        # Test Starter → FREE (should get exactly 6 days)
-        await self.test_plan_change_scenario(user2_id, "professional", "free", 6)
+        if not success:
+            self.log_test(TestResult(
+                "Backend Service Status",
+                False,
+                f"Backend service not responding: {response.get('error', 'Unknown error')}",
+                {"status_code": response.get('status_code', 0)}
+            ))
+            return
         
-        # Step 4: Test edge cases
-        logger.info("\n🔄 Testing edge cases...")
+        data = response.get('data', {})
+        message = data.get('message', '')
+        status = data.get('status', '')
         
-        # Test multiple plan changes in succession
-        await self.test_multiple_plan_changes(user1_id)
+        if "BotSmith API" in message and status == "running":
+            self.log_test(TestResult(
+                "Backend Service Status",
+                True,
+                "Backend service is running and responding correctly",
+                {
+                    "message": message,
+                    "status": status,
+                    "status_code": response['status_code']
+                }
+            ))
+        else:
+            self.log_test(TestResult(
+                "Backend Service Status",
+                False,
+                f"Backend service status unexpected: message='{message}', status='{status}'",
+                {
+                    "message": message,
+                    "status": status,
+                    "status_code": response['status_code']
+                }
+            ))
+    
+    async def test_environment_variables(self):
+        """Test 5: Environment Variables Check"""
+        print(f"{Colors.BLUE}🌍 Testing Environment Variables...{Colors.END}")
         
-        # Step 5: Final verification
-        logger.info("\n✅ Final verification of all users...")
-        await self.verify_subscription_duration(user1_id, "starter", 30)
-        await self.verify_subscription_duration(user2_id, "free", 6)
-        await self.verify_subscription_duration(user3_id, "free", 6)
+        # Check if we can read the .env file to verify Supabase configuration
+        try:
+            backend_env_path = "/app/backend/.env"
+            frontend_env_path = "/app/frontend/.env"
+            
+            backend_vars = {}
+            frontend_vars = {}
+            
+            # Read backend .env
+            if os.path.exists(backend_env_path):
+                with open(backend_env_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            backend_vars[key] = value.strip('"')
+            
+            # Read frontend .env
+            if os.path.exists(frontend_env_path):
+                with open(frontend_env_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            frontend_vars[key] = value.strip('"')
+            
+            # Check required Supabase variables
+            required_backend = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_JWT_SECRET']
+            required_frontend = ['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY']
+            
+            backend_missing = [var for var in required_backend if var not in backend_vars or not backend_vars[var]]
+            frontend_missing = [var for var in required_frontend if var not in frontend_vars or not frontend_vars[var]]
+            
+            if not backend_missing and not frontend_missing:
+                self.log_test(TestResult(
+                    "Environment Variables",
+                    True,
+                    "All required Supabase environment variables are configured",
+                    {
+                        "backend_supabase_url": backend_vars.get('SUPABASE_URL', '')[:50] + "...",
+                        "frontend_supabase_url": frontend_vars.get('REACT_APP_SUPABASE_URL', '')[:50] + "...",
+                        "backend_anon_key_length": len(backend_vars.get('SUPABASE_ANON_KEY', '')),
+                        "frontend_anon_key_length": len(frontend_vars.get('REACT_APP_SUPABASE_ANON_KEY', '')),
+                        "jwt_secret_configured": bool(backend_vars.get('SUPABASE_JWT_SECRET'))
+                    }
+                ))
+            else:
+                self.log_test(TestResult(
+                    "Environment Variables",
+                    False,
+                    "Missing required Supabase environment variables",
+                    {
+                        "backend_missing": backend_missing,
+                        "frontend_missing": frontend_missing,
+                        "backend_vars_found": list(backend_vars.keys()),
+                        "frontend_vars_found": list(frontend_vars.keys())
+                    }
+                ))
+        
+        except Exception as e:
+            self.log_test(TestResult(
+                "Environment Variables",
+                False,
+                f"Error checking environment variables: {str(e)}",
+                {"error": str(e)}
+            ))
+    
+    async def run_all_tests(self):
+        """Run all tests in sequence"""
+        print(f"{Colors.BOLD}{Colors.MAGENTA}🚀 BotSmith AI - Google OAuth via Supabase Testing{Colors.END}")
+        print(f"{Colors.CYAN}Testing URL: {BASE_URL}{Colors.END}")
+        print(f"{Colors.CYAN}Admin Credentials: {ADMIN_EMAIL} / {ADMIN_PASSWORD}{Colors.END}")
+        print("=" * 80)
+        print()
+        
+        # Run all tests
+        await self.test_environment_variables()
+        await self.test_supabase_status()
+        await self.test_backend_health()
+        await self.test_admin_authentication()
+        await self.test_service_status()
         
         # Print summary
-        self.print_test_summary()
+        self.print_summary()
     
-    def print_test_summary(self):
-        """Print comprehensive test summary"""
-        logger.info("\n" + "=" * 80)
-        logger.info("📊 ADMIN PLAN CHANGE TEST SUMMARY")
-        logger.info("=" * 80)
+    def print_summary(self):
+        """Print test summary"""
+        print("=" * 80)
+        print(f"{Colors.BOLD}{Colors.MAGENTA}📊 TEST SUMMARY{Colors.END}")
+        print("=" * 80)
         
-        total_tests = len(self.test_results)
-        passed_tests = sum(1 for result in self.test_results if result["success"])
+        total_tests = len(self.results)
+        passed_tests = sum(1 for r in self.results if r.success)
         failed_tests = total_tests - passed_tests
         
-        logger.info(f"Total Tests: {total_tests}")
-        logger.info(f"Passed: {passed_tests} ✅")
-        logger.info(f"Failed: {failed_tests} ❌")
-        logger.info(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        print(f"{Colors.BOLD}Total Tests: {total_tests}{Colors.END}")
+        print(f"{Colors.GREEN}✅ Passed: {passed_tests}{Colors.END}")
+        print(f"{Colors.RED}❌ Failed: {failed_tests}{Colors.END}")
+        print(f"{Colors.CYAN}Success Rate: {(passed_tests/total_tests*100):.1f}%{Colors.END}")
+        print()
         
         if failed_tests > 0:
-            logger.info("\n❌ FAILED TESTS:")
-            for result in self.test_results:
-                if not result["success"]:
-                    logger.info(f"  - {result['test']}: {result['details']}")
+            print(f"{Colors.RED}{Colors.BOLD}FAILED TESTS:{Colors.END}")
+            for result in self.results:
+                if not result.success:
+                    print(f"  ❌ {result.name}: {result.message}")
+            print()
         
-        logger.info("\n✅ PASSED TESTS:")
-        for result in self.test_results:
-            if result["success"]:
-                logger.info(f"  - {result['test']}: {result['details']}")
+        # Expected results summary
+        print(f"{Colors.BOLD}{Colors.YELLOW}EXPECTED RESULTS:{Colors.END}")
+        print("✅ Supabase status endpoint returns configured: true")
+        print("✅ Admin login works with email/password")
+        print("✅ Backend health check passes")
+        print("✅ All services running properly")
+        print("✅ Environment variables properly configured")
+        print()
         
-        logger.info("\n" + "=" * 80)
-        
-        # Overall result
         if failed_tests == 0:
-            logger.info("🎉 ALL TESTS PASSED! Admin plan change duration fix is working correctly.")
+            print(f"{Colors.GREEN}{Colors.BOLD}🎉 ALL TESTS PASSED! Google OAuth via Supabase is ready for testing.{Colors.END}")
         else:
-            logger.info(f"⚠️  {failed_tests} test(s) failed. Admin plan change duration fix needs attention.")
+            print(f"{Colors.RED}{Colors.BOLD}⚠️ Some tests failed. Please review the issues above.{Colors.END}")
         
-        logger.info("=" * 80)
+        print()
+        print(f"{Colors.CYAN}Note: Full Google OAuth testing (sign-in/sign-up flow) requires Google OAuth provider")
+        print(f"to be enabled in Supabase Dashboard. This test focuses on backend configuration")
+        print(f"and admin authentication preservation.{Colors.END}")
 
 async def main():
-    """Main test execution function"""
-    async with AdminPlanChangeTestSuite() as test_suite:
-        await test_suite.run_comprehensive_tests()
+    """Main test execution"""
+    try:
+        async with SupabaseAuthTester() as tester:
+            await tester.run_all_tests()
+    except KeyboardInterrupt:
+        print(f"\n{Colors.YELLOW}Test interrupted by user{Colors.END}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n{Colors.RED}Test execution failed: {str(e)}{Colors.END}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     asyncio.run(main())
