@@ -75,7 +75,7 @@ async def process_instagram_message(
                 f"⚠️ Chatbot Inactive\n\n"
                 f"This chatbot is currently inactive and cannot process messages.\n"
                 f"Please contact the chatbot owner to activate it.\n\n"
-                f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://google-auth-flow-6.preview.emergentagent.com')}"
+                f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://auth-screen-fix-1.preview.emergentagent.com')}"
             )
             await instagram_service.send_message(sender_id, inactive_message)
             logger.info(f"Chatbot {chatbot_id} is inactive. Skipping message processing.")
@@ -93,7 +93,7 @@ async def process_instagram_message(
                     f"⚠️ Message Limit Reached\n\n"
                     f"This chatbot has used {limit_check['current']}/{limit_check['max']} messages this month.\n"
                     f"The owner needs to upgrade their plan to continue using this bot.\n\n"
-                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://google-auth-flow-6.preview.emergentagent.com')}"
+                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://auth-screen-fix-1.preview.emergentagent.com')}"
                 )
                 await instagram_service.send_message(sender_id, limit_message)
                 logger.warning(f"Message limit reached for user {owner_user_id}. Current: {limit_check['current']}, Max: {limit_check['max']}")
