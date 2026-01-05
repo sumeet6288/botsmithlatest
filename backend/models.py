@@ -11,7 +11,7 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     email: EmailStr
-    password_hash: str
+    password_hash: Optional[str] = ""  # Optional for OAuth users (Google, etc.)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
