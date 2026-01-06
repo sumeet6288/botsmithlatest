@@ -125,6 +125,31 @@ function ScrollToTop() {
   return null;
 }
 
+// Detect auth routes and apply scoped class to fix white space
+function AuthRouteDetector() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    const authRoutes = ['/signin', '/signup'];
+    const isAuthRoute = authRoutes.includes(location.pathname);
+    
+    // Get the root element
+    const rootElement = document.getElementById('root');
+    
+    if (rootElement) {
+      if (isAuthRoute) {
+        // Add auth-route class for scoped CSS fixes
+        rootElement.classList.add('auth-route');
+      } else {
+        // Remove auth-route class for all other pages
+        rootElement.classList.remove('auth-route');
+      }
+    }
+  }, [location.pathname]);
+  
+  return null;
+}
+
 function AppContent() {
   const { user } = useAuth();
   
