@@ -1768,7 +1768,7 @@ async def get_system_settings():
                 "timezone": "UTC",
                 "default_language": "en",
                 "support_email": "support@botsmith.com",
-                "admin_email": "admin@botsmith.com"
+                "admin_email": "sumeetemail26@gmail.com"
             },
             "authentication": {
                 "require_email_verification": True,
