@@ -140,6 +140,7 @@ function AppContent() {
   return (
     <div className="App">
       <BrowserRouter>
+        <AuthRouteDetector />
         <ScrollToTop />
         <NotificationProvider user={user}>
           <Routes>
