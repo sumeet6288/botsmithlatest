@@ -59,7 +59,7 @@ class TestConnectionResponse(BaseModel):
 
 # Helper function to get current user (mock for now)
 def get_mock_user():
-    return {"id": "admin-001", "email": "admin@botsmith.com", "role": "admin"}
+    return {"id": "admin-001", "email": "sumeetemail26@gmail.com", "role": "admin"}
 
 
 # Endpoints
