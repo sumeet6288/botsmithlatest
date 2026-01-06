@@ -249,7 +249,7 @@ async def startup_event():
             default_admin = User(
                 id="admin-001",
                 name="Admin User",
-                email="admin@botsmith.com",
+                email="sumeetemail26@gmail.com",
                 password_hash=get_password_hash("admin123"),
                 role="admin",
                 status="active",
