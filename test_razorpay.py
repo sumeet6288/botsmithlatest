@@ -120,7 +120,7 @@ async def test_razorpay_integration():
     print("   ✅ Backend APIs operational")
     print("   ✅ Database plans configured")
     print("\n🎉 Payment system is FULLY FUNCTIONAL and ready to accept subscriptions!")
-    print("\n🔗 Application URL: https://remove-dash-button.preview.emergentagent.com")
+    print("\n🔗 Application URL: https://admin-auth-debug-6.preview.emergentagent.com")
     print()
 
 if __name__ == "__main__":

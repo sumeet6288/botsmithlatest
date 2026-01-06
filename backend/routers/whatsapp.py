@@ -190,7 +190,7 @@ async def process_whatsapp_message(chatbot_id: str, message: Dict[str, Any], val
                 f"⚠️ *Chatbot Inactive*\n\n"
                 f"This chatbot is currently inactive and cannot process messages.\n"
                 f"Please contact the chatbot owner to activate it.\n\n"
-                f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://remove-dash-button.preview.emergentagent.com')}"
+                f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://admin-auth-debug-6.preview.emergentagent.com')}"
             )
             await whatsapp_service.send_message(from_number, inactive_message)
             logger.info(f"Chatbot {chatbot_id} is inactive. Skipping message processing.")
@@ -208,7 +208,7 @@ async def process_whatsapp_message(chatbot_id: str, message: Dict[str, Any], val
                     f"⚠️ *Message Limit Reached*\n\n"
                     f"This chatbot has used {limit_check['current']}/{limit_check['max']} messages this month.\n"
                     f"The owner needs to upgrade their plan to continue using this bot.\n\n"
-                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://remove-dash-button.preview.emergentagent.com')}"
+                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://admin-auth-debug-6.preview.emergentagent.com')}"
                 )
                 await whatsapp_service.send_message(from_number, limit_message)
                 logger.warning(f"Message limit reached for user {owner_user_id}. Current: {limit_check['current']}, Max: {limit_check['max']}")
@@ -380,7 +380,7 @@ async def setup_whatsapp_webhook(
             raise HTTPException(status_code=404, detail="WhatsApp integration not found. Please configure WhatsApp first.")
         
         # Generate webhook URL
-        backend_url = os.environ.get('BACKEND_URL', 'https://remove-dash-button.preview.emergentagent.com')
+        backend_url = os.environ.get('BACKEND_URL', 'https://admin-auth-debug-6.preview.emergentagent.com')
         webhook_url = f"{backend_url}/api/whatsapp/webhook/{chatbot_id}"
         verify_token = integration.get("metadata", {}).get("verify_token", "botsmith_verify_token")
         
