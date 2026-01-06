@@ -152,7 +152,7 @@ Content height: 5244px
 - Frontend restarted successfully
 - Backend restarted successfully
 - All services running: Frontend (PID 767), Backend (PID 793), MongoDB (PID 50)
-- Application accessible at: https://login-whitespace.preview.emergentagent.com
+- Application accessible at: https://remove-dash-button.preview.emergentagent.com
 
 ---
 

@@ -17,7 +17,7 @@ Context:
 - Frontend environment variables: REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
 - Regular users (/signup, /signin) will use Google OAuth ONLY
 - Admin users will continue using email/password authentication
-- Application URL: https://login-whitespace.preview.emergentagent.com
+- Application URL: https://remove-dash-button.preview.emergentagent.com
 """
 
 import asyncio
@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "https://login-whitespace.preview.emergentagent.com/api"
+BASE_URL = "https://remove-dash-button.preview.emergentagent.com/api"
 ADMIN_EMAIL = "admin@botsmith.com"
 ADMIN_PASSWORD = "admin123"
 

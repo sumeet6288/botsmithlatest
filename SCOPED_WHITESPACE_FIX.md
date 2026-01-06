@@ -297,7 +297,7 @@ If you need to revert or modify this fix:
 - ✅ All tests passing
 - ✅ Production-ready
 
-**Application URL:** https://login-whitespace.preview.emergentagent.com
+**Application URL:** https://remove-dash-button.preview.emergentagent.com
 
 ---
 
