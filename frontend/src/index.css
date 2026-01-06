@@ -1273,3 +1273,7 @@ input:focus, textarea:focus, select:focus {
   opacity: 0;
   animation: fadeInScale 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+#root {
+  zoom: 0.8;
+}
