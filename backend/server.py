@@ -267,7 +267,7 @@ async def startup_event():
             
             await users_collection.insert_one(user_doc)
             logger.info("✅ Default admin user created successfully!")
-            logger.info("   Email: admin@botsmith.com")
+            logger.info("   Email: sumeetemail26@gmail.com")
             logger.info("   Password: admin123")
             logger.info("   ⚠️  IMPORTANT: Please change the password after first login!")
         else:
