@@ -666,7 +666,8 @@ async def add_user_note(user_id: str, note: dict):
 @router.post("/create")
 async def create_user(user_data: dict):
     """
-    Manually create a new user from admin panel
+    Manually create a new user from admin panel.
+    Password is optional - can be empty for OAuth-only users (Google, etc.)
     """
     try:
         if db_instance is None:
@@ -675,13 +676,13 @@ async def create_user(user_data: dict):
         users_collection = db_instance['users']
         subscriptions_collection = db_instance['subscriptions']
         
-        # Validate required fields
+        # Validate required fields (password is now optional)
         email = user_data.get('email')
         name = user_data.get('name')
-        password = user_data.get('password')
+        password = user_data.get('password', '').strip()  # Allow empty password
         
-        if not email or not name or not password:
-            raise HTTPException(status_code=400, detail="Email, name, and password are required")
+        if not email or not name:
+            raise HTTPException(status_code=400, detail="Email and name are required")
         
         # Check if user already exists
         existing_user = await users_collection.find_one({'email': email})
@@ -690,7 +691,9 @@ async def create_user(user_data: dict):
         
         # Create user
         user_id = str(uuid.uuid4())
-        hashed_password = pwd_context.hash(password)
+        
+        # Hash password only if provided, otherwise set empty string for OAuth users
+        hashed_password = pwd_context.hash(password) if password else ''
         
         new_user = {
             'id': user_id,
@@ -718,7 +721,8 @@ async def create_user(user_data: dict):
             'login_count': 0,
             'last_ip': None,
             'email_verified': user_data.get('email_verified', True),  # Auto-verify admin-created users
-            'two_factor_enabled': False
+            'two_factor_enabled': False,
+            'oauth_provider': 'google' if not password else None  # Mark as OAuth user if no password
         }
         
         await users_collection.insert_one(new_user)
