@@ -108,13 +108,10 @@ const HelpCenter = () => {
             </div>
             <span className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-purple-600 bg-clip-text text-transparent">BotSmith</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center">
             <Button variant="ghost" onClick={() => navigate('/resources')} className="hover:bg-purple-50">
               <Home className="w-4 h-4 mr-2" />
               Resources Home
-            </Button>
-            <Button onClick={() => navigate('/dashboard')} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-              Dashboard
             </Button>
           </div>
         </div>
