@@ -1277,3 +1277,13 @@ input:focus, textarea:focus, select:focus {
 #root {
   zoom: 0.8;
 }
+
+/* Scoped fix for auth pages (SignIn/SignUp) white space issue */
+/* Override global zoom and App min-height ONLY for auth routes */
+#root.auth-route {
+  zoom: 1;
+}
+
+#root.auth-route .App {
+  min-height: unset;
+}
