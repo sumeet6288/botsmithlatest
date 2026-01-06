@@ -101,12 +101,35 @@ async def sync_user_from_supabase(supabase_user: Dict) -> Dict:
         if app_metadata.get('provider'):
             update_data['oauth_provider'] = app_metadata['provider']
         
+        # Only increment login_count if it's a new login session (more than 30 minutes since last login)
+        # This prevents inflating login count on token refreshes and API calls
+        should_increment_login = False
+        last_login = existing_user.get('last_login')
+        if last_login:
+            # Parse last_login if it's a string
+            if isinstance(last_login, str):
+                try:
+                    last_login = datetime.fromisoformat(last_login.replace('Z', '+00:00'))
+                except:
+                    last_login = None
+            
+            # Only count as new login if more than 30 minutes have passed
+            if last_login and (now - last_login).total_seconds() > 1800:  # 30 minutes
+                should_increment_login = True
+        else:
+            # No last_login recorded, this is a genuine login
+            should_increment_login = True
+        
+        update_operation = {"$set": update_data}
+        if should_increment_login:
+            update_operation["$inc"] = {"login_count": 1}
+            logger.info(f"🔐 New login session detected for {email} (incrementing login_count)")
+        else:
+            logger.debug(f"🔄 Token validation/refresh for {email} (not incrementing login_count)")
+        
         await users_collection.update_one(
             {"_id": existing_user["_id"]},
-            {
-                "$set": update_data,
-                "$inc": {"login_count": 1}
-            }
+            update_operation
         )
         
         # Fetch and return updated user
