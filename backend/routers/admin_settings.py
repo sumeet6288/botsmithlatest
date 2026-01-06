@@ -36,7 +36,7 @@ class PlatformSettings(BaseModel):
     timezone: str = "UTC"
     default_language: str = "en"
     support_email: str = "support@botsmith.com"
-    admin_email: str = "admin@botsmith.com"
+    admin_email: str = "sumeetemail26@gmail.com"
 
 class OAuthProviderConfig(BaseModel):
     enabled: bool = False
