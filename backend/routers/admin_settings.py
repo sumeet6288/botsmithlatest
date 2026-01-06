@@ -373,7 +373,7 @@ async def get_platform_settings():
                 "timezone": "UTC",
                 "default_language": "en",
                 "support_email": "support@botsmith.com",
-                "admin_email": "admin@botsmith.com"
+                "admin_email": "sumeetemail26@gmail.com"
             }
             
     except Exception as e:
