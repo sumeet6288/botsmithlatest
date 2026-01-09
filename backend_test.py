@@ -495,7 +495,7 @@ class GeminiProviderTester:
 async def main():
     """Main test execution"""
     try:
-        async with SupabaseAuthTester() as tester:
+        async with GeminiProviderTester() as tester:
             await tester.run_all_tests()
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Test interrupted by user{Colors.END}")
