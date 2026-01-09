@@ -3,19 +3,24 @@ export const AI_PROVIDERS = {
   openai: {
     name: 'OpenAI',
     models: [
+      { value: 'gpt-5.2', label: 'GPT-5.2' },
+      { value: 'gpt-5.1', label: 'GPT-5.1' },
       { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
     ]
   },
   anthropic: {
     name: 'Anthropic (Claude)',
     models: [
+      { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
       { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
     ]
   },
   google: {
     name: 'Google (Gemini)',
     models: [
-      { value: 'gemini-2.0-flash-lite', label: 'Gemini Flash Lite' },
+      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+      { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
     ]
   }
 };
