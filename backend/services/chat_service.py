@@ -55,8 +55,16 @@ class ChatService:
                 system_message=enhanced_system
             )
             
+            # Map provider names - emergentintegrations uses "gemini" instead of "google"
+            provider_mapping = {
+                "google": "gemini",
+                "openai": "openai",
+                "anthropic": "anthropic"
+            }
+            actual_provider = provider_mapping.get(provider, provider)
+            
             # Set model and provider
-            chat.with_model(provider, model)
+            chat.with_model(actual_provider, model)
             
             # Create user message
             user_message = UserMessage(text=message)
