@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-BotSmith AI - Google OAuth via Supabase Authentication Testing
-=============================================================
+BotSmith AI - Google Gemini AI Provider Integration Testing
+==========================================================
 
-This script tests the Google OAuth authentication via Supabase for BotSmith AI application.
+This script tests the Google Gemini AI provider integration after the critical bug fix.
 
 Test Scope:
-1. Supabase Configuration Verification
-2. Backend Health Check
-3. Admin Authentication (Legacy - Should Still Work)
-4. Service Status
+1. Admin Authentication
+2. Chatbot Creation with Google/Gemini Provider
+3. Chat API Testing with Gemini Models
+4. Provider Mapping Verification
+5. Backend Logs Analysis
 
 Context:
-- Google OAuth is NOW configured with Supabase
-- Backend environment variables: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET
-- Frontend environment variables: REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
-- Regular users (/signup, /signin) will use Google OAuth ONLY
-- Admin users will continue using email/password authentication
+- Fixed critical bug where Google/Gemini models were not responding
+- Provider mapping: 'google' → 'gemini' for emergentintegrations library
+- Available Gemini models: gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite
+- Admin credentials: admin@botsmith.com / admin123
 - Application URL: https://env-config-11.preview.emergentagent.com
 """
 
