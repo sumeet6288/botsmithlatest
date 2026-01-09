@@ -297,7 +297,7 @@ If you need to revert or modify this fix:
 - ✅ All tests passing
 - ✅ Production-ready
 
-**Application URL:** https://premium-type.preview.emergentagent.com
+**Application URL:** https://env-config-11.preview.emergentagent.com
 
 ---
 

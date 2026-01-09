@@ -341,7 +341,7 @@ async def get_webhook_url(
         # Get backend URL from environment
         backend_url = os.environ.get(
             'REACT_APP_BACKEND_URL',
-            'https://premium-type.preview.emergentagent.com'
+            'https://env-config-11.preview.emergentagent.com'
         )
         
         webhook_url = f"{backend_url}/api/zapier/webhook/{chatbot_id}"
