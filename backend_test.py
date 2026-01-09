@@ -423,18 +423,29 @@ class GeminiProviderTester:
     
     async def run_all_tests(self):
         """Run all tests in sequence"""
-        print(f"{Colors.BOLD}{Colors.MAGENTA}🚀 BotSmith AI - Google OAuth via Supabase Testing{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.MAGENTA}🚀 BotSmith AI - Google Gemini AI Provider Testing{Colors.END}")
         print(f"{Colors.CYAN}Testing URL: {BASE_URL}{Colors.END}")
         print(f"{Colors.CYAN}Admin Credentials: {ADMIN_EMAIL} / {ADMIN_PASSWORD}{Colors.END}")
         print("=" * 80)
         print()
         
         # Run all tests
-        await self.test_environment_variables()
-        await self.test_supabase_status()
         await self.test_backend_health()
         await self.test_admin_authentication()
-        await self.test_service_status()
+        
+        if self.admin_token:
+            # Test with different Gemini models
+            gemini_models = ["gemini-2.0-flash-lite", "gemini-2.5-flash"]
+            
+            for model in gemini_models:
+                chatbot_id = await self.test_create_gemini_chatbot(model)
+                if chatbot_id:
+                    await self.test_chat_with_gemini(chatbot_id, model)
+        
+        await self.test_provider_mapping_verification()
+        
+        # Cleanup test chatbots
+        await self.cleanup_test_chatbots()
         
         # Print summary
         self.print_summary()
