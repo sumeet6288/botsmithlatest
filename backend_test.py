@@ -55,13 +55,14 @@ class TestResult:
         self.details = details or {}
         self.timestamp = datetime.now().isoformat()
 
-class SupabaseAuthTester:
-    """Comprehensive Supabase Authentication Tester"""
+class GeminiProviderTester:
+    """Comprehensive Google Gemini AI Provider Tester"""
     
     def __init__(self):
         self.session = None
         self.results = []
         self.admin_token = None
+        self.test_chatbots = []  # Store created chatbots for cleanup
         
     async def __aenter__(self):
         """Async context manager entry"""
