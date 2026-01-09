@@ -30,7 +30,7 @@ from typing import Dict, Any, Optional
 
 # Configuration
 BASE_URL = "https://env-config-11.preview.emergentagent.com/api"
-ADMIN_EMAIL = "admin@botsmith.com"
+ADMIN_EMAIL = "sumeetemail26@gmail.com"
 ADMIN_PASSWORD = "admin123"
 
 class Colors:
