@@ -84,16 +84,9 @@ class ChatService:
         """Get list of available models by provider"""
         return {
             "openai": [
-                "gpt-5.2",
-                "gpt-5.1",
                 "gpt-4o-mini"
             ],
-            "anthropic": [
-                "claude-sonnet-4-5-20250929",
-                "claude-3-5-haiku-20241022"
-            ],
             "google": [
-                "gemini-2.5-flash",
                 "gemini-2.0-flash",
                 "gemini-2.0-flash-lite"
             ]
