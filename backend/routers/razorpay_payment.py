@@ -158,33 +158,16 @@ async def verify_payment(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Verify Razorpay payment and activate subscription
+    Verify Razorpay payment and activate subscription.
     
-    IDEMPOTENCY FIX (2025-01-XX):
-    - Checks if payment_id has already been processed
-    - Prevents double subscription extensions from duplicate webhook/callback calls
+    NOW USES SubscriptionService (SINGLE SOURCE OF TRUTH):
+    - All payment processing delegated to SubscriptionService
+    - Idempotency handled automatically
+    - Consistent duration calculation
+    - Prevents 59-65 day bug
     """
     try:
-        # IDEMPOTENCY CHECK: Ensure this payment hasn't been processed before
-        existing_payment = await subscriptions_collection.find_one({
-            "razorpay_payment_id": request.razorpay_payment_id
-        })
-        
-        if existing_payment:
-            logger.warning(f"Payment {request.razorpay_payment_id} already processed for user {current_user.id}. Skipping duplicate processing.")
-            plan = await plans_collection.find_one({"id": existing_payment.get('plan_id', 'starter')})
-            return PaymentResponse(
-                success=True,
-                message="Payment already verified (idempotency check)",
-                subscription_id=request.razorpay_subscription_id,
-                data={
-                    "plan_id": existing_payment.get('plan_id'),
-                    "plan_name": plan.get('name') if plan else 'Starter',
-                    "expires_at": existing_payment.get('expires_at').isoformat() if existing_payment.get('expires_at') else None,
-                    "status": "active",
-                    "note": "This payment was already processed previously"
-                }
-            )
+        logger.info(f"[VERIFY-PAYMENT] User {current_user.id} verifying payment {request.razorpay_payment_id}")
         
         # Verify payment signature
         is_valid = verify_payment_signature(
@@ -208,69 +191,40 @@ async def verify_payment(
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
 
-        # Update or create subscription in database
-        existing_subscription = await subscriptions_collection.find_one({"user_id": current_user.id})
-        
-        # NEW SUBSCRIPTION MODEL (2025):
-        # - Upgrading from FREE to PAID: Starts fresh with exactly 30 days (no carry-forward)
-        # - Plan changes: Always start fresh with 30 days
-        # - RENEWALS of SAME paid plan: Extend from current expiration (preserve remaining days)
-        
-        # Default: Always start fresh with 30 days from now
-        expires_at = datetime.utcnow() + timedelta(days=30)
-        
-        # Check if this is a RENEWAL (same plan) or UPGRADE/NEW (different plan)
-        is_renewal = existing_subscription and existing_subscription.get('plan_id') == plan_id
-        
-        # Only extend from current expiration for RENEWALS of the SAME PAID plan
-        # This preserves remaining days when renewing before expiration
-        if is_renewal:
-            if existing_subscription.get('status') == 'active' and existing_subscription.get('expires_at'):
-                current_expires = existing_subscription['expires_at']
-                if isinstance(current_expires, str):
-                    current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
-                
-                # If not expired yet, extend from current expiration (renewal scenario)
-                if current_expires > datetime.utcnow():
-                    expires_at = current_expires + timedelta(days=30)
-        
-        # For plan upgrades/downgrades from FREE to PAID, always start fresh (no carry-forward)
-        subscription_data = {
-            "user_id": current_user.id,
-            "plan_id": plan_id,
-            "status": "active",
-            "started_at": datetime.utcnow(),
-            "expires_at": expires_at,
-            "billing_cycle": "monthly",
-            "auto_renew": True,
-            "razorpay_subscription_id": request.razorpay_subscription_id,
-            "razorpay_payment_id": request.razorpay_payment_id,
-            "updated_at": datetime.utcnow()
-        }
-
-        if existing_subscription:
-            await subscriptions_collection.update_one(
-                {"user_id": current_user.id},
-                {"$set": subscription_data}
-            )
-        else:
-            subscription_data['created_at'] = datetime.utcnow()
-            subscription_data['usage'] = {
-                "chatbots": 0,
-                "messages": 0,
-                "file_uploads": 0,
-                "website_sources": 0,
-                "text_sources": 0
-            }
-            await subscriptions_collection.insert_one(subscription_data)
-
-        # Update user's plan_id
-        await users_collection.update_one(
-            {"id": current_user.id},
-            {"$set": {"plan_id": plan_id, "updated_at": datetime.utcnow()}}
+        # 🎯 DELEGATE TO SUBSCRIPTION SERVICE (SINGLE SOURCE OF TRUTH)
+        result = await subscription_service.process_payment_idempotent(
+            payment_id=request.razorpay_payment_id,
+            user_id=current_user.id,
+            plan_id=plan_id,
+            payment_source="verify_payment"
         )
-
-        logger.info(f"Payment verified and subscription activated for user {current_user.id}, plan: {plan_id}, payment_id: {request.razorpay_payment_id}")
+        
+        # Update razorpay_subscription_id for tracking
+        await subscriptions_collection.update_one(
+            {"user_id": current_user.id},
+            {"$set": {"razorpay_subscription_id": request.razorpay_subscription_id}}
+        )
+        
+        # Handle result
+        if result.get('status') == 'already_processed':
+            logger.info(f"[VERIFY-PAYMENT] Payment {request.razorpay_payment_id} already processed - idempotency working")
+            subscription_data = result.get('subscription', {})
+            return PaymentResponse(
+                success=True,
+                message="Payment already verified (idempotency)",
+                subscription_id=request.razorpay_subscription_id,
+                data={
+                    "plan_id": subscription_data.get('plan_id'),
+                    "plan_name": plan.get('name'),
+                    "expires_at": subscription_data.get('expires_at').isoformat() if subscription_data.get('expires_at') else None,
+                    "status": "active",
+                    "note": "This payment was already processed"
+                }
+            )
+        
+        # Successfully processed
+        subscription_data = result.get('subscription', {})
+        logger.info(f"[VERIFY-PAYMENT] Successfully processed payment {request.razorpay_payment_id} for user {current_user.id}")
 
         return PaymentResponse(
             success=True,
@@ -278,6 +232,13 @@ async def verify_payment(
             subscription_id=request.razorpay_subscription_id,
             data={
                 "plan_id": plan_id,
+                "plan_name": plan.get('name'),
+                "expires_at": subscription_data.get('expires_at').isoformat() if subscription_data.get('expires_at') else None,
+                "status": "active",
+                "duration_days": result.get('duration_days', 30),
+                "action_type": result.get('action_type')
+            }
+        )
                 "plan_name": plan.get('name'),
                 "expires_at": subscription_data['expires_at'].isoformat(),
                 "status": "active"
