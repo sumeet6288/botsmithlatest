@@ -195,7 +195,7 @@ async def process_messenger_message(chatbot_id: str, messaging_event: Dict[str, 
                     f"⚠️ Message Limit Reached\n\n"
                     f"This chatbot has used {limit_check['current']}/{limit_check['max']} messages this month.\n"
                     f"The owner needs to upgrade their plan to continue using this bot.\n\n"
-                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://botsmith-arch-1.preview.emergentagent.com')}"
+                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://subscription-fix-14.preview.emergentagent.com')}"
                 )
                 await messenger_service.send_message(sender_id, limit_message)
                 logger.warning(f"Message limit reached for user {owner_user_id}. Current: {limit_check['current']}, Max: {limit_check['max']}")
@@ -374,7 +374,7 @@ async def setup_messenger_webhook(
             raise HTTPException(status_code=404, detail="Messenger integration not found. Please configure Messenger first.")
         
         # Generate webhook URL
-        backend_url = os.environ.get('BACKEND_URL', 'https://botsmith-arch-1.preview.emergentagent.com')
+        backend_url = os.environ.get('BACKEND_URL', 'https://subscription-fix-14.preview.emergentagent.com')
         webhook_url = f"{backend_url}/api/messenger/webhook/{chatbot_id}"
         verify_token = integration.get("metadata", {}).get("verify_token", "botsmith_messenger_verify")
         
