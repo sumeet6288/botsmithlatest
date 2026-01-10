@@ -364,55 +364,29 @@ async def razorpay_webhook(payload: Dict):
             plan_id = notes.get('plan_id')
 
             if user_id and payment_id:
-                # IDEMPOTENCY CHECK: Ensure this payment hasn't been processed
-                # Check if payment_id exists in subscriptions collection
-                existing_payment = await subscriptions_collection.find_one({
-                    "razorpay_payment_id": payment_id
-                })
+                logger.info(f"[WEBHOOK] Processing subscription.charged event for user {user_id}, payment {payment_id}, plan {plan_id}")
                 
-                if existing_payment:
-                    logger.warning(f"Payment {payment_id} already processed for user {user_id}. Skipping duplicate webhook processing.")
-                    return {"status": "success", "message": "Payment already processed"}
+                # ✅ MIGRATED: Use SubscriptionService for idempotent payment processing (SINGLE SOURCE OF TRUTH)
+                # This replaces the old inline logic that caused 59-65 day subscription bugs
+                result = await subscription_service.process_payment_idempotent(
+                    payment_id=payment_id,
+                    user_id=user_id,
+                    plan_id=plan_id,
+                    payment_source="webhook"
+                )
                 
-                # Get existing subscription
-                subscription = await subscriptions_collection.find_one({"user_id": user_id})
-                if subscription:
-                    # Check if this is an upgrade or renewal
-                    old_plan_id = subscription.get('plan_id')
-                    is_upgrade = (old_plan_id != plan_id) if plan_id else False
-                    
-                    if is_upgrade:
-                        # UPGRADE: Start fresh with 30 days
-                        new_expires = datetime.utcnow() + timedelta(days=30)
-                        logger.info(f"Plan upgrade detected for user {user_id}: {old_plan_id} → {plan_id}. Starting fresh with 30 days.")
-                    else:
-                        # RENEWAL: Extend from current expiration
-                        current_expires = subscription.get('expires_at', datetime.utcnow())
-                        if isinstance(current_expires, str):
-                            current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
-                        
-                        if current_expires > datetime.utcnow():
-                            new_expires = current_expires + timedelta(days=30)
-                            logger.info(f"Renewal detected for user {user_id}. Extending from {current_expires} to {new_expires}")
-                        else:
-                            new_expires = datetime.utcnow() + timedelta(days=30)
-                            logger.info(f"Expired subscription renewal for user {user_id}. Starting fresh with 30 days.")
-                    
-                    # Update subscription with payment_id to prevent duplicate processing
-                    await subscriptions_collection.update_one(
-                        {"user_id": user_id},
-                        {
-                            "$set": {
-                                "expires_at": new_expires,
-                                "status": "active",
-                                "razorpay_payment_id": payment_id,
-                                "razorpay_subscription_id": subscription_id,
-                                "plan_id": plan_id if plan_id else subscription.get('plan_id'),
-                                "updated_at": datetime.utcnow()
-                            }
-                        }
-                    )
-                    logger.info(f"Subscription updated for user {user_id}, expires_at: {new_expires}, payment_id: {payment_id}")
+                # Update razorpay_subscription_id for tracking
+                await subscriptions_collection.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"razorpay_subscription_id": subscription_id}}
+                )
+                
+                if result.get('status') == 'already_processed':
+                    logger.info(f"[WEBHOOK] Payment {payment_id} already processed - idempotency working correctly")
+                else:
+                    subscription_data = result.get('subscription', {})
+                    logger.info(f"[WEBHOOK] Successfully processed payment {payment_id}. User {user_id} subscription updated. Action: {result.get('action_type')}, Duration: {result.get('duration_days')} days, Expires: {subscription_data.get('expires_at')}")
+
 
         elif event == 'subscription.cancelled':
             # Subscription cancelled
