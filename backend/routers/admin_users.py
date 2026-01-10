@@ -8,6 +8,7 @@ from models import (
     ActivityLog, ActivityLogResponse, BulkUserOperation
 )
 from passlib.context import CryptContext
+from services.subscription_service import SubscriptionService
 import logging
 import uuid
 import json
@@ -16,14 +17,16 @@ import csv
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 db_instance = None
+_subscription_service = None
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 logger = logging.getLogger(__name__)
 
 def init_router(db: AsyncIOMotorDatabase):
     """Initialize router with database instance"""
-    global db_instance
+    global db_instance, _subscription_service
     db_instance = db
+    _subscription_service = SubscriptionService(db)
 
 
 # ============================================================================
