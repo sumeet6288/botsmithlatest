@@ -2,8 +2,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timedelta
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from services.subscription_service import SubscriptionService
+from services.subscription_duration_calculator import SubscriptionDurationCalculator
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin/subscriptions", tags=["admin-subscriptions"])
 
@@ -15,6 +20,9 @@ db = client[db_name]
 users_collection = db.users
 subscriptions_collection = db.subscriptions
 plans_collection = db.plans
+
+# Initialize SubscriptionService
+_subscription_service = SubscriptionService(db)
 
 # Request Models
 class ExtendSubscriptionRequest(BaseModel):
