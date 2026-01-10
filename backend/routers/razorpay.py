@@ -202,21 +202,15 @@ async def resume_subscription(request: SubscriptionActionRequest):
 
 async def sync_subscription_to_main_collection(entity: dict, payment_id: str = None):
     """
-    Sync Razorpay subscription data to main subscriptions collection.
-    Updates user's plan and creates/updates subscription record.
+    DEPRECATED: This function now delegates to SubscriptionService.
     
-    IDEMPOTENCY FIX (2025-01-XX):
-    - Uses payment_id to ensure each payment is processed EXACTLY ONCE
-    - Prevents double/triple extensions when webhooks fire multiple times
-    - Ensures users get exactly 30 days on upgrade, not 59-65 days
+    Kept for backward compatibility but uses the new centralized service.
+    All subscription updates now go through SubscriptionService for consistency.
     
-    SUBSCRIPTION UPGRADE FIX (2025):
-    - When upgrading from FREE to PAID: Start fresh with 30 days (no carry-forward)
-    - When renewing SAME plan: Extend from current expiration (preserve remaining days)
-    - This prevents the bug where FREE days get added to PAID subscription
+    Args:
+        entity: Razorpay subscription entity
+        payment_id: Payment ID for idempotency
     """
-    from datetime import datetime, timedelta
-    
     try:
         notes = entity.get('notes', {})
         user_id = notes.get('user_id')
@@ -227,112 +221,29 @@ async def sync_subscription_to_main_collection(entity: dict, payment_id: str = N
             logger.warning(f"No user_id in subscription notes: {subscription_id}")
             return
         
-        # IDEMPOTENCY CHECK: Ensure this payment hasn't been processed before
-        # Use payment_id if available, otherwise use subscription_id + timestamp combination
-        idempotency_key = payment_id or f"{subscription_id}_{int(datetime.utcnow().timestamp())}"
+        # Use payment_id if available, otherwise use subscription_id as fallback
+        idempotency_key = payment_id or f"webhook_{subscription_id}_{int(entity.get('created_at', 0))}"
         
-        # Check if this payment has already been processed
-        existing_payment = await _db.processed_payments.find_one({
-            "payment_id": idempotency_key,
-            "user_id": user_id
-        })
+        logger.info(f"[RAZORPAY WEBHOOK] Processing payment {idempotency_key} for user {user_id}, plan {plan_id}")
         
-        if existing_payment:
-            logger.warning(f"Payment {idempotency_key} already processed for user {user_id} at {existing_payment.get('processed_at')}. Skipping duplicate processing.")
-            return
-        
-        # Get plan details from database
-        plan = await _db.plans.find_one({"id": plan_id})
-        if not plan:
-            logger.warning(f"Plan not found: {plan_id}")
-            return
-        
-        # Check if subscription exists
-        existing_subscription = await _db.subscriptions.find_one({"user_id": user_id})
-        
-        # CRITICAL FIX: Distinguish between UPGRADE and RENEWAL
-        # - UPGRADE: Plan changed (e.g., free → starter) → Start fresh with 30 days
-        # - RENEWAL: Same plan → Extend from current expiration (preserve remaining days)
-        
-        is_plan_upgrade = False
-        if existing_subscription:
-            old_plan_id = existing_subscription.get('plan_id')
-            is_plan_upgrade = (old_plan_id != plan_id)
-            logger.info(f"User {user_id}: Plan transition from '{old_plan_id}' to '{plan_id}' - {'UPGRADE' if is_plan_upgrade else 'RENEWAL'}")
-        
-        # Calculate expiration date based on whether this is upgrade or renewal
-        if is_plan_upgrade:
-            # PLAN UPGRADE: Always start fresh with 30 days from now (no carry-forward from old plan)
-            expires_at = datetime.utcnow() + timedelta(days=30)
-            logger.info(f"Plan upgrade detected - starting fresh: expires_at = {expires_at}")
-        elif existing_subscription and existing_subscription.get('status') == 'active':
-            # RENEWAL: Preserve remaining days by extending from current expiration
-            current_expires = existing_subscription.get('expires_at')
-            if isinstance(current_expires, str):
-                current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
-            elif not isinstance(current_expires, datetime):
-                current_expires = datetime.utcnow()
-            
-            # If not expired yet, extend from current expiration (renewal preserves remaining days)
-            if current_expires > datetime.utcnow():
-                expires_at = current_expires + timedelta(days=30)
-                logger.info(f"Renewal detected - extending from current: {current_expires} → {expires_at}")
-            else:
-                expires_at = datetime.utcnow() + timedelta(days=30)
-                logger.info(f"Expired renewal - starting fresh: expires_at = {expires_at}")
-        else:
-            # NEW SUBSCRIPTION: Start fresh with 30 days
-            expires_at = datetime.utcnow() + timedelta(days=30)
-            logger.info(f"New subscription - starting fresh: expires_at = {expires_at}")
-        
-        subscription_data = {
-            "user_id": user_id,
-            "plan_id": plan_id,
-            "status": "active",
-            "expires_at": expires_at,
-            "billing_cycle": "monthly",
-            "auto_renew": True,
-            "razorpay_subscription_id": subscription_id,
-            "updated_at": datetime.utcnow()
-        }
-        
-        if existing_subscription:
-            await _db.subscriptions.update_one(
-                {"user_id": user_id},
-                {"$set": subscription_data}
-            )
-            logger.info(f"Updated subscription for user {user_id}")
-        else:
-            subscription_data['created_at'] = datetime.utcnow()
-            subscription_data['started_at'] = datetime.utcnow()
-            subscription_data['usage'] = {
-                "chatbots": 0,
-                "messages": 0,
-                "file_uploads": 0,
-                "website_sources": 0,
-                "text_sources": 0
-            }
-            await _db.subscriptions.insert_one(subscription_data)
-            logger.info(f"Created new subscription for user {user_id}")
-        
-        # Update user's plan_id
-        await _db.users.update_one(
-            {"id": user_id},
-            {"$set": {"plan_id": plan_id, "updated_at": datetime.utcnow()}}
+        # Delegate to SubscriptionService (SINGLE SOURCE OF TRUTH)
+        result = await _subscription_service.process_payment_idempotent(
+            payment_id=idempotency_key,
+            user_id=user_id,
+            plan_id=plan_id,
+            payment_source="webhook"
         )
-        logger.info(f"Updated user {user_id} plan to {plan_id}")
         
-        # MARK PAYMENT AS PROCESSED (Idempotency Record)
-        await _db.processed_payments.insert_one({
-            "payment_id": idempotency_key,
-            "user_id": user_id,
-            "subscription_id": subscription_id,
-            "plan_id": plan_id,
-            "processed_at": datetime.utcnow(),
-            "expires_at": expires_at,
-            "is_upgrade": is_plan_upgrade
-        })
-        logger.info(f"Marked payment {idempotency_key} as processed for user {user_id}")
+        if result.get('status') == 'already_processed':
+            logger.info(f"[RAZORPAY WEBHOOK] Payment {idempotency_key} was already processed - idempotency working correctly")
+        else:
+            logger.info(f"[RAZORPAY WEBHOOK] Successfully processed payment {idempotency_key} via SubscriptionService")
+        
+        # Update razorpay_subscription_id in subscriptions for tracking
+        await _db.subscriptions.update_one(
+            {"user_id": user_id},
+            {"$set": {"razorpay_subscription_id": subscription_id}}
+        )
         
     except Exception as e:
         logger.error(f"Error syncing subscription to main collection: {str(e)}", exc_info=True)
