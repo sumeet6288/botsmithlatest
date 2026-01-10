@@ -11,6 +11,7 @@ import logging
 from auth import get_current_user
 from models import User
 from motor.motor_asyncio import AsyncIOMotorClient
+from services.subscription_service import SubscriptionService
 
 router = APIRouter(prefix="/razorpay", tags=["Razorpay Payment"])
 
@@ -24,6 +25,9 @@ db = client[db_name]
 subscriptions_collection = db.subscriptions
 users_collection = db.users
 plans_collection = db.plans
+
+# Initialize SubscriptionService
+subscription_service = SubscriptionService(db)
 
 # Razorpay Configuration
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
