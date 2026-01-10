@@ -7,6 +7,7 @@ import hmac
 import hashlib
 import os
 from services.razorpay_service import RazorpayService
+from services.subscription_service import SubscriptionService
 from auth import get_current_user, User
 
 logger = logging.getLogger(__name__)
@@ -14,11 +15,13 @@ router = APIRouter(tags=["razorpay"])
 
 # Database instance
 _db = None
+_subscription_service = None
 
 def init_router(db):
     """Initialize router with database instance."""
-    global _db
+    global _db, _subscription_service
     _db = db
+    _subscription_service = SubscriptionService(db)
 
 
 class CreateSubscriptionRequest(BaseModel):
