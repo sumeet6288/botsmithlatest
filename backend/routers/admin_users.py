@@ -1698,65 +1698,25 @@ async def ultimate_update_user(user_id: str, update_data: Dict[str, Any]):
         )
         
         if result.modified_count > 0 or result.matched_count > 0:
-            # CRITICAL FIX: Update subscription plan_id and duration if plan changed
+            # MIGRATED TO SubscriptionService - Use centralized service for plan changes
             if "plan_id" in update_data:
-                subscriptions_collection = db_instance['subscriptions']
-                plans_collection = db_instance['plans']
+                if _subscription_service is None:
+                    logger.error("SubscriptionService not initialized!")
+                    raise HTTPException(status_code=500, detail="Subscription service not available")
                 
-                # Get the new plan details from database to determine correct duration
-                new_plan = await plans_collection.find_one({"id": update_data["plan_id"]})
-                
-                # Determine subscription duration based on plan
-                # Free plan: 6 days, All paid plans: 30 days
-                if update_data["plan_id"] == "free":
-                    days_duration = 6
-                else:
-                    # For paid plans (starter, professional, enterprise), always use 30 days
-                    days_duration = 30
-                
-                # Calculate new subscription dates
-                started_at = datetime.now(timezone.utc)
-                expires_at = started_at + timedelta(days=days_duration)
-                
-                # Check if subscription exists
-                existing_sub = await subscriptions_collection.find_one({"user_id": user_id})
-                
-                if existing_sub:
-                    # Update existing subscription with new plan AND proper expiration dates
-                    subscription_update = {
-                        "plan_id": update_data["plan_id"],
-                        "status": "active",
-                        "started_at": started_at,
-                        "expires_at": expires_at,
-                        "updated_at": started_at
-                    }
-                    await subscriptions_collection.update_one(
-                        {"user_id": user_id},
-                        {"$set": subscription_update}
+                # Use SubscriptionService for all plan changes (SINGLE SOURCE OF TRUTH)
+                try:
+                    subscription_result = await _subscription_service.admin_change_plan(
+                        user_id=user_id,
+                        new_plan_id=update_data["plan_id"],
+                        admin_id="admin",  # TODO: Get actual admin user ID from auth
+                        reason="Ultimate Edit modal plan change"
                     )
-                    logger.info(f"✅ Admin plan change: Updated subscription for user {user_id} to plan '{update_data['plan_id']}' with {days_duration} days duration (expires: {expires_at.isoformat()})")
-                else:
-                    # Create new subscription with proper dates
-                    new_subscription = {
-                        "user_id": user_id,
-                        "plan_id": update_data["plan_id"],
-                        "status": "active",
-                        "started_at": started_at,
-                        "expires_at": expires_at,
-                        "auto_renew": True,
-                        "usage": {
-                            "chatbots_count": 0,
-                            "messages_this_month": 0,
-                            "file_uploads_count": 0,
-                            "website_sources_count": 0,
-                            "text_sources_count": 0,
-                            "last_reset": started_at
-                        },
-                        "created_at": started_at,
-                        "updated_at": started_at
-                    }
-                    await subscriptions_collection.insert_one(new_subscription)
-                    logger.info(f"✅ Admin plan change: Created new subscription for user {user_id} with plan '{update_data['plan_id']}' for {days_duration} days (expires: {expires_at.isoformat()})")
+                    logger.info(f"✅ Admin plan change via SubscriptionService: User {user_id} → plan '{update_data['plan_id']}', expires: {subscription_result.get('expires_at')}")
+                except Exception as e:
+                    logger.error(f"Failed to update subscription via SubscriptionService: {str(e)}", exc_info=True)
+                    # Don't fail the whole update if subscription update fails
+                    logger.warning(f"User plan_id updated in users collection, but subscription update failed")
             
             # Log activity
             await log_activity(
