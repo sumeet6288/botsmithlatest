@@ -319,21 +319,23 @@ async def change_user_plan(
             await subscriptions_collection.insert_one(subscription)
         
         return {
-            "message": f"Plan changed to {plan['name']} successfully. Subscription starts fresh with {days_duration} days.",
+            "message": f"Plan changed to {plan['name']} successfully. Subscription starts fresh with {duration} days.",
             "plan": {
                 "id": plan["id"],
                 "name": plan["name"],
                 "price": plan["price"]
             },
             "subscription": {
-                "started_at": started_at.isoformat(),
-                "expires_at": expires_at.isoformat(),
-                "days": days_duration
+                "started_at": subscription_result.get('started_at').isoformat() if subscription_result.get('started_at') else None,
+                "expires_at": subscription_result.get('expires_at').isoformat() if subscription_result.get('expires_at') else None,
+                "days": duration,
+                "status": "active"
             }
         }
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error changing plan for user {user_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error changing plan: {str(e)}")
 
 @router.get("/plans")
