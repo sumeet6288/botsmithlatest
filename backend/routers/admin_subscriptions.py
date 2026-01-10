@@ -267,12 +267,16 @@ async def change_user_plan(
     request: ChangePlanRequest
 ):
     """
-    Change user's subscription plan
+    Change user's subscription plan - MIGRATED TO USE SUBSCRIPTION SERVICE
     
     NEW SUBSCRIPTION MODEL (2025):
     - When upgrading from FREE to PAID plan: Starts fresh with exactly 30 days from now
     - No carry-forward of remaining FREE plan time
     - No billing confusion - paid subscription always starts with full 30 days
+    
+    MIGRATION NOTE (2025-01-10):
+    - Now uses SubscriptionService.admin_change_plan() for consistent duration calculation
+    - All subscription logic centralized in SubscriptionService (SINGLE SOURCE OF TRUTH)
     """
     try:
         # Verify plan exists
@@ -280,43 +284,18 @@ async def change_user_plan(
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         
-        # Get current subscription to check if this is an upgrade from free to paid
-        current_subscription = await subscriptions_collection.find_one({"user_id": user_id})
+        # ✅ MIGRATED: Use SubscriptionService for all plan changes (SINGLE SOURCE OF TRUTH)
+        logger.info(f"[ADMIN PLAN CHANGE] Admin changing user {user_id} to plan {request.plan_id} via SubscriptionService")
         
-        # Determine subscription duration based on new plan
-        # Free plan: 6 days, Paid plans: 30 days
-        days_duration = 6 if request.plan_id == "free" else 30
-        
-        # NEW MODEL: When changing plans, ALWAYS start fresh with full duration
-        # No carry-forward of time from previous plan
-        started_at = datetime.utcnow()
-        expires_at = started_at + timedelta(days=days_duration)
-        
-        # Prepare update data with fresh subscription dates
-        update_data = {
-            "plan_id": request.plan_id,
-            "status": "active",
-            "started_at": started_at,
-            "expires_at": expires_at,
-            "updated_at": datetime.utcnow()
-        }
-        
-        # Update subscription
-        result = await subscriptions_collection.update_one(
-            {"user_id": user_id},
-            {"$set": update_data}
+        subscription_result = await _subscription_service.admin_change_plan(
+            user_id=user_id,
+            new_plan_id=request.plan_id,
+            admin_id="admin",  # TODO: Get actual admin user ID from auth
+            reason="Admin panel plan change via /admin/subscriptions/{user_id}/plan endpoint"
         )
         
-        # Also update user document
-        await users_collection.update_one(
-            {"id": user_id},
-            {
-                "$set": {
-                    "plan_id": request.plan_id,
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
+        duration = SubscriptionDurationCalculator.get_plan_duration(request.plan_id)
+        logger.info(f"[ADMIN PLAN CHANGE] Successfully changed user {user_id} to {request.plan_id} plan. Duration: {duration} days, expires: {subscription_result.get('expires_at')}")
         
         if result.modified_count == 0:
             # Try to create subscription if it doesn't exist
