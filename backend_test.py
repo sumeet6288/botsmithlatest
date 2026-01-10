@@ -17,7 +17,7 @@ Context:
 - Provider mapping: 'google' → 'gemini' for emergentintegrations library
 - Available Gemini models: gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite
 - Admin credentials: admin@botsmith.com / admin123
-- Application URL: https://model-visibility.preview.emergentagent.com
+- Application URL: https://botsmith-arch-1.preview.emergentagent.com
 """
 
 import asyncio
@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "https://model-visibility.preview.emergentagent.com/api"
+BASE_URL = "https://botsmith-arch-1.preview.emergentagent.com/api"
 ADMIN_EMAIL = "sumeetemail26@gmail.com"
 ADMIN_PASSWORD = "admin123"
 
