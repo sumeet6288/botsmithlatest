@@ -351,7 +351,7 @@ async def payment_callback(
     """
     try:
         from fastapi.responses import RedirectResponse
-        frontend_url = os.environ.get('FRONTEND_URL', 'https://env-config-11.preview.emergentagent.com')
+        frontend_url = os.environ.get('FRONTEND_URL', 'https://model-visibility.preview.emergentagent.com')
         
         # Check if payment was cancelled by user
         if razorpay_payment_link_status == 'cancelled':
@@ -405,7 +405,7 @@ async def payment_callback(
         logger.error(f"Error in payment callback: {str(e)}")
         # Redirect to subscription page with error (will auto-redirect to dashboard)
         from fastapi.responses import RedirectResponse
-        frontend_url = os.environ.get('FRONTEND_URL', 'https://env-config-11.preview.emergentagent.com')
+        frontend_url = os.environ.get('FRONTEND_URL', 'https://model-visibility.preview.emergentagent.com')
         return RedirectResponse(url=f"{frontend_url}/subscription?error=payment_failed")
 
 

@@ -85,7 +85,7 @@ async def process_msteams_message(
                     f"⚠️ **Message Limit Reached**\n\n"
                     f"This chatbot has used {limit_check['current']}/{limit_check['max']} messages this month.\n"
                     f"The owner needs to upgrade their plan to continue using this bot.\n\n"
-                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://env-config-11.preview.emergentagent.com')}"
+                    f"Dashboard: {os.environ.get('FRONTEND_URL', 'https://model-visibility.preview.emergentagent.com')}"
                 )
                 await teams_service.send_message(service_url, conversation_id, limit_message)
                 logger.warning(f"Message limit reached for user {owner_user_id}. Current: {limit_check['current']}, Max: {limit_check['max']}")
