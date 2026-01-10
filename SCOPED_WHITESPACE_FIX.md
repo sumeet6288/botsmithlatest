@@ -297,7 +297,7 @@ If you need to revert or modify this fix:
 - ✅ All tests passing
 - ✅ Production-ready
 
-**Application URL:** https://subscription-fix-14.preview.emergentagent.com
+**Application URL:** https://planlogic.preview.emergentagent.com
 
 ---
 
